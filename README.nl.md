@@ -45,6 +45,7 @@ mini-pc's) een Plex-apparaat: aanzetten, kort een opstartscherm, en
    ```
    De ISO komt in `build/marquee-<versie>-amd64.iso`. Bij een release-tag
    (`v*`) maakt GitHub Actions de ISO ook automatisch en hangt hem aan de release.
+   Of start *Actions > build > Run workflow* op `main` met een release-tag zoals `v0.3.0`.
 2. Zet hem op een USB-stick (balenaEtcher, Rufus in DD-modus, of
    `sudo dd if=build/marquee-*.iso of=/dev/sdX bs=4M status=progress conv=fsync`).
 3. Start de pc van de stick. ISO-bootsticks zoals Ventoy of IODD werken ook; USB-schijven worden nooit als installatiedoel gebruikt.

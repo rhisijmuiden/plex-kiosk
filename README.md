@@ -44,7 +44,8 @@ included) into a Plex appliance: power on, a short splash screen, and
    # or: iso/build-iso.sh --password --ssh-key ~/.ssh/id_ed25519.pub
    ```
    The ISO lands in `build/marquee-<version>-amd64.iso`. Tagged releases
-   (`v*`) also get a ready-made ISO attached by GitHub Actions.
+   (`v*`) also get a ready-made ISO attached by GitHub Actions; you can also
+   start *Actions > build > Run workflow* on `main` with a release tag such as `v0.3.0`.
 2. Write it to a USB stick (balenaEtcher, Rufus in DD mode, or
    `sudo dd if=build/marquee-*.iso of=/dev/sdX bs=4M status=progress conv=fsync`).
 3. Boot the PC from the stick. ISO-boot sticks such as Ventoy or IODD work too; USB disks are never used as install target.
