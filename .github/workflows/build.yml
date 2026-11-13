@@ -38,6 +38,8 @@ jobs:
           flatpak info --system tv.plex.PlexHTPC
           id kiosk
           test -f /usr/share/plymouth/themes/marquee/marquee.plymouth
+          test -x /usr/local/sbin/plex-kiosk-fallback
+          grep -q OnFailure=plex-kiosk-fallback.service /etc/systemd/system/plex-kiosk.service
 
   iso:
     needs: lint
