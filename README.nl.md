@@ -31,7 +31,8 @@ mini-pc's) een Plex-apparaat: aanzetten, kort een opstartscherm, en
 - Minimaal 2 GB RAM, 4 GB aangeraden
 - Minimaal 16 GB opslag
 - Bekabeld netwerk tijdens de installatie (wifi kan daarna)
-- NVIDIA werkt met de open `nouveau`-driver, maar hardware-decodering is beperkt. Intel/AMD hebben de voorkeur.
+- NVIDIA werkt met de open `nouveau`-driver, maar oudere kaarten (bv. GeForce GT 710) zijn traag en kunnen geen video decoderen. Heeft de processor ingebouwde graphics (Intel UHD/Iris, AMD Ryzen met Radeon), haal de NVIDIA-kaart er dan uit en sluit de tv aan op het moederbord: sneller én 4K/HEVC in hardware.
+- Twee videokaarten: de kiosk kiest automatisch de kaart waar de tv op zit, met voorkeur voor Intel/AMD. Vastzetten kan met `KIOSK_GPU=/dev/dri/card1` in `/etc/plex-kiosk/plex-kiosk.conf`.
 
 ## Optie A: automatische installer-ISO (aangeraden)
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 - 2026-11-13
+- PCs with two GPUs: the kiosk now picks the GPU the TV is connected to, and
+  prefers Intel/AMD over NVIDIA's nouveau driver. Override with `KIOSK_GPU` in
+  `/etc/plex-kiosk/plex-kiosk.conf`.
+- Docs: hardware advice for older NVIDIA cards (use the CPU's graphics instead).
+
 ## 0.2.1 - 2026-11-13
 - Fix: Plex never appeared (black screen) because Flatpak's bwrap refused to
   start with inherited capabilities. The kiosk session now runs with none.
