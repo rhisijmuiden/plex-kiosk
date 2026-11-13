@@ -84,7 +84,9 @@ WANTED=(
   # boot splash
   plymouth plymouth-themes
   # networking + remote management
-  network-manager openssh-server ca-certificates curl sudo
+  network-manager openssh-server ca-certificates curl sudo git
+  # web admin
+  python3
   # automatic updates
   unattended-upgrades apt-listchanges
   # HDMI-CEC (Pulse-Eight USB adapter or boards with CEC)
@@ -120,14 +122,42 @@ flatpak override --system --device=all "$PLEX_APP_ID"
 # --- 5. Configuration files -----------------------------------------------------
 log "Installing configuration files"
 cp -rT "$SRC_DIR/rootfs" /
-chmod 0755 /usr/local/sbin/plex-kiosk-* /usr/local/bin/plex-kiosk
+chmod 0755 /usr/local/sbin/plex-kiosk-* /usr/local/sbin/marquee-ctl /usr/local/bin/plex-kiosk
 
 install -d -m 0755 /etc/plex-kiosk
 if [[ ! -f /etc/plex-kiosk/plex-kiosk.conf ]]; then
   install -m 0644 "$SRC_DIR/defaults/plex-kiosk.conf" /etc/plex-kiosk/plex-kiosk.conf
 fi
-sed -i -E "s/^KIOSK_USER=.*/KIOSK_USER=$KIOSK_USER/; s/^PLEX_APP_ID=.*/PLEX_APP_ID=$PLEX_APP_ID/" \
+# Add settings that are new in this version to an existing config.
+while IFS= read -r line; do
+  [[ "$line" =~ ^([A-Z_]+)= ]] || continue
+  grep -q "^${BASH_REMATCH[1]}=" /etc/plex-kiosk/plex-kiosk.conf || echo "$line" >> /etc/plex-kiosk/plex-kiosk.conf
+done < "$SRC_DIR/defaults/plex-kiosk.conf"
+sed -i -E "s|^KIOSK_USER=.*|KIOSK_USER=$KIOSK_USER|; s|^PLEX_APP_ID=.*|PLEX_APP_ID=$PLEX_APP_ID|; s|^MARQUEE_DIR=.*|MARQUEE_DIR=$SRC_DIR|" \
   /etc/plex-kiosk/plex-kiosk.conf
+
+# Web admin assets in the house style
+install -d /usr/local/lib/marquee-admin/static/brand
+install -m 0644 "$SRC_DIR/branding/tokens.css" "$SRC_DIR/branding/logo-mark.svg" /usr/local/lib/marquee-admin/static/brand/
+install -m 0644 "$SRC_DIR/branding/logo.svg" /usr/local/lib/marquee-admin/static/brand/logo-dark.svg
+install -d -m 0700 /var/lib/marquee-admin
+
+# Make the install directory a git checkout so Marquee can update itself and
+# switch between production (main) and test. Fails quietly for private repos.
+if ! git -C "$SRC_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+  # shellcheck disable=SC1091
+  REPO="$(. /etc/plex-kiosk/plex-kiosk.conf; echo "${MARQUEE_REPO:-}")"
+  if [[ -n "$REPO" ]] && git -C "$SRC_DIR" init -q -b main \
+      && git -C "$SRC_DIR" remote add origin "$REPO" \
+      && git -C "$SRC_DIR" fetch -q --depth 50 origin main; then
+    git -C "$SRC_DIR" reset -q origin/main      # keep files, adopt history
+    git -C "$SRC_DIR" branch -q --set-upstream-to=origin/main main || true
+    log "Linked $SRC_DIR to $REPO for self-updates"
+  else
+    rm -rf "$SRC_DIR/.git"
+    warn "Could not reach $REPO; Marquee self-update is disabled (Debian and Plex updates still work)."
+  fi
+fi
 cp "$SRC_DIR/VERSION" /etc/plex-kiosk/version
 git -C "$SRC_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null > /etc/plex-kiosk/branch || echo main > /etc/plex-kiosk/branch
 
@@ -181,13 +211,14 @@ update-grub || warn "update-grub failed"
 # --- 7. Services ----------------------------------------------------------------
 log "Enabling services"
 systemctl set-default graphical.target
-systemctl enable plex-kiosk.service plex-kiosk-flatpak-update.timer \
+systemctl enable plex-kiosk.service plex-kiosk-flatpak-update.timer marquee-admin.service \
   unattended-upgrades.service NetworkManager.service ssh.service
 systemctl disable getty@tty1.service 2>/dev/null || true
 
 if ! in_chroot; then
   systemctl daemon-reload
+  systemctl restart marquee-admin.service || warn "Web admin did not start; see: journalctl -u marquee-admin"
   systemctl restart plex-kiosk.service || warn "Kiosk did not start; see: journalctl -u plex-kiosk"
 fi
 
-log "Done. Marquee $(cat "$SRC_DIR/VERSION") installed. Reboot to start the kiosk."
+log "Done. Marquee $(cat "$SRC_DIR/VERSION") installed. Web admin: http://$(hostname -I 2>/dev/null | awk '{print $1}'):8080"

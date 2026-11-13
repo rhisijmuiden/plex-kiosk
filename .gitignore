@@ -2,3 +2,4 @@ build/
 *.iso
 *.part
 __pycache__/
+rootfs/usr/local/lib/marquee-admin/static/brand/

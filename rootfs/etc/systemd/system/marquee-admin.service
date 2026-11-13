@@ -1,0 +1,17 @@
+[Unit]
+Description=Marquee web admin (http://<device>:8080)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/lib/marquee-admin
+ExecStart=/usr/bin/python3 /usr/local/lib/marquee-admin/server.py
+Restart=always
+RestartSec=2
+# Hardening that still allows apt, flatpak, systemctl and git to work.
+PrivateTmp=yes
+ProtectHome=read-only
+
+[Install]
+WantedBy=multi-user.target

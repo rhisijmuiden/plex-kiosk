@@ -20,7 +20,7 @@ mini-pc's) een Plex-apparaat: aanzetten, kort een opstartscherm, en
 | Beeld | Mesa VA-API-drivers voor hardware-decodering op Intel en AMD |
 | Updates | Debian: dagelijks via `unattended-upgrades`, herstart om 04:00 alleen als dat nodig is. Plex: elke nacht om 03:30, Plex herstart alleen als er echt een nieuwe versie is |
 | Opstarten | GRUB-menu verborgen, Marquee-opstartscherm (Plymouth) |
-| Beheer op afstand | SSH als admin-gebruiker, hulpcommando `plex-kiosk` |
+| Beheer op afstand | Webbeheer op poort 8080, SSH als admin-gebruiker, hulpcommando `plex-kiosk` |
 | HDMI-CEC | Werkt met een Pulse-Eight USB-CEC-adapter (de meeste pc-videokaarten hebben geen CEC) |
 
 <p align="center"><img src="docs/splash-preview.png" width="480" alt="Opstartscherm"></p>
@@ -47,7 +47,8 @@ mini-pc's) een Plex-apparaat: aanzetten, kort een opstartscherm, en
    (`v*`) maakt GitHub Actions de ISO ook automatisch en hangt hem aan de release.
 2. Zet hem op een USB-stick (balenaEtcher, Rufus in DD-modus, of
    `sudo dd if=build/marquee-*.iso of=/dev/sdX bs=4M status=progress conv=fsync`).
-3. Start de pc van de stick. Na 10 seconden begint de automatische installatie.
+3. Start de pc van de stick. ISO-bootsticks zoals Ventoy of IODD werken ook; USB-schijven worden nooit als installatiedoel gebruikt.
+   Na 10 seconden begint de automatische installatie.
    Kies *manual* (BIOS) of een gewone optie (UEFI) voor de normale Debian-installer.
 4. Vul het admin-wachtwoord in als daarom gevraagd wordt, wacht 10 à 20 minuten, de pc herstart in Plex.
 
@@ -68,7 +69,33 @@ sudo reboot
 Plex HTPC vraagt één keer om in te loggen (het toont een code die je invult op
 <https://plex.tv/link>). Daarna onthoudt het je account.
 
-## Dagelijks beheer
+## Webbeheer
+
+Open `http://<ip-van-apparaat>:8080` (of `http://plex-kiosk.local:8080`) en log
+in met het admin-account uit de installer.
+
+<p align="center"><img src="docs/admin-dashboard.png" width="720" alt="Webbeheer"></p>
+
+| Menu | Wat het doet |
+|---|---|
+| Overzicht | Draait Plex, versies, uptime, temperatuur, geheugen, schijf; Plex herstarten |
+| Updates | Updates voor Debian, Plex en Marquee controleren en installeren, met live uitvoer |
+| Productie / Test | Dit apparaat wisselen tussen de `main`- en `test`-branch |
+| Logboek | Kiosk-log van de huidige opstart |
+| Aan / uit | Plex herstarten, apparaat herstarten, uitschakelen |
+| Info | Versie, kanaal, commit, updatecontrole en "Nu bijwerken" |
+
+Standaard Engels, Nederlands via de EN/NL-schakelaar. Alleen leden van de groep
+`sudo` kunnen inloggen. De pagina is gewoon HTTP en bedoeld voor je thuisnetwerk:
+zet poort 8080 niet open in je router.
+
+Marquee werkt zichzelf bij vanaf `MARQUEE_REPO` in `/etc/plex-kiosk/plex-kiosk.conf`.
+Is de GitHub-repo privé, dan kan het apparaat er niet bij: maak de repo openbaar
+of zet een alleen-lezen token in de URL
+(`https://<token>@github.com/rhisijmuiden/plex-kiosk.git`). Updates van Debian en
+Plex werken in beide gevallen.
+
+## Dagelijks beheer (SSH)
 
 Via SSH (`ssh admin@plex-kiosk.local` of het IP-adres):
 
@@ -90,7 +117,7 @@ Instellingen: `/etc/plex-kiosk/plex-kiosk.conf`.
 - `main`: productie, dit installeer je op je tv's.
 - `test`: nieuwe wijzigingen komen hier eerst.
 
-Apparaat omzetten: `cd /opt/plex-kiosk && sudo git checkout test && sudo ./install.sh -y`.
+Apparaat omzetten in het webbeheer onder *Productie / Test*, of via SSH: `sudo marquee-ctl channel test`.
 
 ## Huisstijl
 
