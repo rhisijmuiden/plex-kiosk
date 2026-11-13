@@ -20,7 +20,7 @@ included) into a Plex appliance: power on, a short splash screen, and
 | Video | Mesa VA-API drivers for Intel and AMD hardware decoding |
 | Updates | Debian: `unattended-upgrades` daily, reboot at 04:00 only when needed. Plex: nightly at 03:30, kiosk restarts only when Plex actually changed |
 | Boot | GRUB menu hidden, Marquee splash (Plymouth) |
-| Remote management | SSH as the admin user, `plex-kiosk` helper command |
+| Remote management | Web admin on port 8080, SSH as the admin user, `plex-kiosk` helper command |
 | HDMI-CEC | Supported with a Pulse-Eight USB-CEC adapter (most PC GPUs have no CEC) |
 
 <p align="center"><img src="docs/splash-preview.png" width="480" alt="Boot splash"></p>
@@ -47,7 +47,8 @@ included) into a Plex appliance: power on, a short splash screen, and
    (`v*`) also get a ready-made ISO attached by GitHub Actions.
 2. Write it to a USB stick (balenaEtcher, Rufus in DD mode, or
    `sudo dd if=build/marquee-*.iso of=/dev/sdX bs=4M status=progress conv=fsync`).
-3. Boot the PC from the stick. After 10 seconds the automatic install starts.
+3. Boot the PC from the stick. ISO-boot sticks such as Ventoy or IODD work too; USB disks are never used as install target.
+   After 10 seconds the automatic install starts.
    Choose *manual* (BIOS) or a regular entry (UEFI) for the normal Debian installer.
 4. Enter the admin password when asked, wait about 10 to 20 minutes, the PC reboots into Plex.
 
@@ -68,7 +69,33 @@ sudo reboot
 Plex HTPC asks you to sign in once (it shows a code to enter at
 <https://plex.tv/link>). After that it remembers your account.
 
-## Everyday management
+## Web admin
+
+Open `http://<device-ip>:8080` (or `http://plex-kiosk.local:8080`) and sign in
+with the admin account from the installer.
+
+<p align="center"><img src="docs/admin-dashboard.png" width="720" alt="Web admin"></p>
+
+| Menu | What it does |
+|---|---|
+| Dashboard | Is Plex running, versions, uptime, temperature, memory, disk; restart Plex |
+| Updates | Check for and install Debian, Plex and Marquee updates, with live output |
+| Production / Test | Switch this device between the `main` and `test` branch |
+| Logs | Kiosk log of the current boot |
+| Power | Restart Plex, reboot, shut down |
+| Info | Version, channel, commit, update check and "Update now" |
+
+English by default, Dutch via the EN/NL switch. Only members of the `sudo`
+group can sign in. The page is plain HTTP and meant for your home network:
+do not forward port 8080 on your router.
+
+Marquee updates itself from `MARQUEE_REPO` in `/etc/plex-kiosk/plex-kiosk.conf`.
+If the GitHub repository is private, the device cannot reach it: make the
+repository public, or put a read-only token in the URL
+(`https://<token>@github.com/rhisijmuiden/plex-kiosk.git`). Debian and Plex
+updates work either way.
+
+## Everyday management (SSH)
 
 Over SSH (`ssh admin@plex-kiosk.local` or the IP address):
 
@@ -90,7 +117,7 @@ Settings: `/etc/plex-kiosk/plex-kiosk.conf`.
 - `main`: production, what you install on your TVs.
 - `test`: new changes land here first.
 
-Switch a device: `cd /opt/plex-kiosk && sudo git checkout test && sudo ./install.sh -y`.
+Switch a device in the web admin under *Production / Test*, or over SSH: `sudo marquee-ctl channel test`.
 
 ## House style
 
@@ -114,6 +141,7 @@ defaults/                 default config
 rootfs/                   files copied onto the system (systemd, PAM, apt, grub, helpers)
 iso/preseed.cfg           automatic installer answers
 iso/build-iso.sh          builds the installer ISO
+rootfs/usr/local/lib/marquee-admin/  web admin (Python standard library, no dependencies)
 branding/                 Marquee house style + Plymouth theme
 .github/workflows/        lint + ISO builds
 ```

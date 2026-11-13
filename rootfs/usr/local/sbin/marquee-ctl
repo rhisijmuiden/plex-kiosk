@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Marquee control: backend for the web admin and the plex-kiosk helper.
+#
+#   marquee-ctl check                 JSON with available updates
+#   marquee-ctl update [all|system|plex|marquee]
+#   marquee-ctl channel main|test     switch production/test branch and reinstall
+#   marquee-ctl restart-kiosk | reboot | poweroff
+set -euo pipefail
+# shellcheck disable=SC1091
+. /etc/plex-kiosk/plex-kiosk.conf
+
+DIR="${MARQUEE_DIR:-/opt/plex-kiosk}"
+export DEBIAN_FRONTEND=noninteractive
+
+branch() { git -C "$DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || cat /etc/plex-kiosk/branch 2>/dev/null || echo main; }
+
+has_git() { git -C "$DIR" rev-parse --git-dir >/dev/null 2>&1; }
+
+json_str() { python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"; }
+
+check() {
+  apt-get update -qq >/dev/null 2>&1 || true
+  local debian plex marquee_behind="null" latest="null" err="null"
+  debian="$(apt list --upgradable 2>/dev/null | grep -c '/' || true)"
+  plex="$(flatpak remote-ls --system --updates flathub 2>/dev/null | grep -c . || true)"
+  if has_git; then
+    local b; b="$(branch)"
+    if git -C "$DIR" fetch -q --depth 50 origin "$b" 2>/dev/null; then
+      marquee_behind="$(git -C "$DIR" rev-list --count "HEAD..origin/$b" 2>/dev/null || echo 0)"
+      latest="$(json_str "$(git -C "$DIR" show "origin/$b:VERSION" 2>/dev/null | tr -d '\n' || echo '?')")"
+    else
+      err="$(json_str "Could not reach the Marquee repository")"
+    fi
+  else
+    err="$(json_str "Marquee is not installed from git; self-update unavailable")"
+  fi
+  printf '{"debian":%s,"flatpak":%s,"marquee_behind":%s,"marquee_latest":%s,"marquee_error":%s}\n' \
+    "${debian:-0}" "${plex:-0}" "$marquee_behind" "$latest" "$err"
+}
+
+update_system() { echo "== Debian packages"; apt-get update; apt-get -y -o Dpkg::Options::=--force-confold full-upgrade; apt-get -y autoremove; }
+update_plex()   { echo "== Plex and Flatpak runtimes"; /usr/local/sbin/plex-kiosk-update; }
+update_marquee() {
+  echo "== Marquee ($(branch))"
+  has_git || { echo "Not a git checkout: $DIR"; return 1; }
+  local b; b="$(branch)"
+  git -C "$DIR" fetch --depth 50 origin "$b"
+  git -C "$DIR" reset --hard "origin/$b"
+  "$DIR/install.sh" --unattended
+}
+
+switch_channel() {
+  local target="$1"
+  [[ "$target" == "main" || "$target" == "test" ]] || { echo "Channel must be main or test"; exit 2; }
+  has_git || { echo "Not a git checkout: $DIR"; exit 1; }
+  echo "== Switching to $target"
+  git -C "$DIR" fetch --depth 50 origin "+refs/heads/$target:refs/remotes/origin/$target"
+  git -C "$DIR" checkout -B "$target" "origin/$target"
+  "$DIR/install.sh" --unattended
+}
+
+case "${1:-}" in
+  check) check ;;
+  update)
+    case "${2:-all}" in
+      all) update_system; update_plex; update_marquee || true ;;
+      system) update_system ;;
+      plex) update_plex ;;
+      marquee) update_marquee ;;
+      *) echo "Unknown update target"; exit 2 ;;
+    esac
+    echo "== Done" ;;
+  channel) switch_channel "${2:-}" ;;
+  restart-kiosk) systemctl restart plex-kiosk.service ;;
+  reboot) systemctl reboot ;;
+  poweroff) systemctl poweroff ;;
+  *) sed -n '2,8p' "$0"; exit 2 ;;
+esac
