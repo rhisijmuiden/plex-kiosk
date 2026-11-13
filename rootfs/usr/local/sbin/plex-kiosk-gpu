@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Picks the GPU the kiosk (cage/wlroots) should use on PCs with more than one.
+# Order: GPUs with a connected screen first, and among those Intel/AMD before
+# NVIDIA (nouveau is slow and has no video decoding on older cards).
+# Writes WLR_DRM_DEVICES to /run/plex-kiosk/gpu.env (read by plex-kiosk.service).
+set -u
+# shellcheck disable=SC1091
+. /etc/plex-kiosk/plex-kiosk.conf 2>/dev/null || true
+out=/run/plex-kiosk/gpu.env
+mkdir -p /run/plex-kiosk
+: > "$out"
+
+# Manual override in plex-kiosk.conf, e.g. KIOSK_GPU=/dev/dri/card1
+if [[ -n "${KIOSK_GPU:-}" ]]; then
+  echo "WLR_DRM_DEVICES=$KIOSK_GPU" > "$out"; echo "GPU (manual): $KIOSK_GPU"; exit 0
+fi
+
+best=""; best_score=-1; count=0
+for dev in /sys/class/drm/card[0-9]; do
+  [[ -e "$dev/device/driver" ]] || continue
+  card="/dev/dri/$(basename "$dev")"
+  driver="$(basename "$(readlink -f "$dev/device/driver")")"
+  [[ "$driver" == "simpledrm" ]] && continue
+  count=$((count + 1))
+  score=0
+  for status in "$dev"/"$(basename "$dev")"-*/status; do
+    [[ -f "$status" ]] && [[ "$(cat "$status")" == "connected" ]] && { score=$((score + 10)); break; }
+  done
+  case "$driver" in i915|xe|amdgpu|radeon) score=$((score + 5)) ;; nouveau) score=$((score + 1)) ;; esac
+  echo "GPU candidate: $card driver=$driver score=$score"
+  if (( score > best_score )); then best="$card"; best_score=$score; fi
+done
+
+if (( count > 1 )) && [[ -n "$best" ]]; then
+  echo "WLR_DRM_DEVICES=$best" > "$out"
+  echo "GPU selected: $best"
+fi
+exit 0

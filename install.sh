@@ -198,8 +198,11 @@ Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=XDG_RUNTIME_DIR=/run/user/$KIOSK_UID
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$KIOSK_UID/bus
 EnvironmentFile=-/etc/plex-kiosk/plex-kiosk.conf
+# Chosen GPU on PCs with more than one (written by plex-kiosk-gpu below).
+EnvironmentFile=-/run/plex-kiosk/gpu.env
 # Runs as root ('+'): installs Plex if it is missing (e.g. no network during install).
 ExecStartPre=+/usr/local/sbin/plex-kiosk-ensure-app
+ExecStartPre=+/usr/local/sbin/plex-kiosk-gpu
 ExecStart=/usr/bin/cage -d -s -- /usr/bin/flatpak run \${PLEX_APP_ID}
 Restart=always
 RestartSec=3

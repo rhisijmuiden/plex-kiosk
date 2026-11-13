@@ -31,7 +31,8 @@ included) into a Plex appliance: power on, a short splash screen, and
 - 2 GB RAM minimum, 4 GB recommended
 - 16 GB storage minimum
 - Wired network during installation (Wi-Fi can be set up afterwards)
-- NVIDIA: works with the open `nouveau` driver, but hardware decoding is limited. Intel/AMD are recommended.
+- NVIDIA: works with the open `nouveau` driver, but older cards (e.g. GeForce GT 710) run slowly and cannot decode video. If the CPU has built-in graphics (Intel UHD/Iris, AMD Ryzen with Radeon), remove the NVIDIA card and connect the TV to the motherboard: that is faster and decodes 4K/HEVC in hardware.
+- Two GPUs: the kiosk automatically uses the one the TV is connected to, preferring Intel/AMD. Force one with `KIOSK_GPU=/dev/dri/card1` in `/etc/plex-kiosk/plex-kiosk.conf`.
 
 ## Option A: automatic installer ISO (recommended)
 
