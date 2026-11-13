@@ -1,0 +1,10 @@
+[Unit]
+Description=Marquee: nightly Plex update
+
+[Timer]
+OnCalendar=*-*-* 03:30
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

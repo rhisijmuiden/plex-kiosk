@@ -1,0 +1,36 @@
+# Marquee boot splash: brand mark centred on ink, amber progress bar below.
+Window.SetBackgroundTopColor(0.055, 0.067, 0.086);
+Window.SetBackgroundBottomColor(0.055, 0.067, 0.086);
+
+cx = Window.GetX() + Window.GetWidth() / 2;
+cy = Window.GetY() + Window.GetHeight() / 2;
+
+mark.image = Image("mark.png");
+mark.sprite = Sprite(mark.image);
+mark.sprite.SetPosition(cx - mark.image.GetWidth() / 2, cy - mark.image.GetHeight() / 2 - 40, 1);
+
+track.image = Image("track.png");
+track.sprite = Sprite(track.image);
+bar_x = cx - track.image.GetWidth() / 2;
+bar_y = cy + mark.image.GetHeight() / 2 + 20;
+track.sprite.SetPosition(bar_x, bar_y, 1);
+
+fill.original = Image("fill.png");
+fill.sprite = Sprite();
+fill.sprite.SetPosition(bar_x, bar_y, 2);
+
+fun progress_callback(duration, progress) {
+  w = Math.Int(fill.original.GetWidth() * progress);
+  if (w < 6) w = 6;
+  fill.sprite.SetImage(fill.original.Scale(w, fill.original.GetHeight()));
+}
+Plymouth.SetBootProgressFunction(progress_callback);
+
+# Status messages (e.g. fsck) as small muted text under the bar
+message.sprite = Sprite();
+fun message_callback(text) {
+  img = Image.Text(text, 0.545, 0.576, 0.631);
+  message.sprite.SetImage(img);
+  message.sprite.SetPosition(cx - img.GetWidth() / 2, bar_y + 30, 3);
+}
+Plymouth.SetMessageFunction(message_callback);

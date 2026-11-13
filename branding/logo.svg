@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 128" width="420" height="128">
+  <title>Marquee</title>
+  <g fill="#F5A524">
+    <circle cx="24" cy="30" r="4.5"/><circle cx="44" cy="20" r="4.5"/><circle cx="64" cy="16" r="4.5"/>
+    <circle cx="84" cy="20" r="4.5"/><circle cx="104" cy="30" r="4.5"/>
+  </g>
+  <rect x="14" y="42" width="100" height="68" rx="16" fill="none" stroke="#F5A524" stroke-width="8"/>
+  <path d="M55 60 L80 76 L55 92 Z" fill="#FF6B5A" stroke="#FF6B5A" stroke-width="4" stroke-linejoin="round"/>
+  <text x="138" y="96" font-family="Inter, 'Inter Display', system-ui, sans-serif" font-weight="700" font-size="64" letter-spacing="-1.5" fill="#E8EAED">marquee</text>
+</svg>

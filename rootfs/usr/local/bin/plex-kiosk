@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC1091
+# Marquee helper: plex-kiosk status|restart|stop|start|update|logs|version
+set -eu
+case "${1:-status}" in
+  status)  systemctl status plex-kiosk.service --no-pager ;;
+  restart|stop|start) sudo systemctl "$1" plex-kiosk.service ;;
+  update)  sudo apt-get update && sudo apt-get -y full-upgrade && sudo /usr/local/sbin/plex-kiosk-update ;;
+  logs)    journalctl -u plex-kiosk.service -b --no-pager -n "${2:-200}" ;;
+  version) echo "Marquee $(cat /etc/plex-kiosk/version) ($(cat /etc/plex-kiosk/branch 2>/dev/null || echo main))"
+           flatpak info --system "$(. /etc/plex-kiosk/plex-kiosk.conf; echo "$PLEX_APP_ID")" | grep -E 'Version|Commit' ;;
+  *) echo "Usage: plex-kiosk status|restart|stop|start|update|logs [n]|version"; exit 1 ;;
+esac

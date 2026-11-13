@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Updates Plex and its runtimes; restarts the kiosk when Plex itself changed.
+set -eu
+# shellcheck disable=SC1091
+. /etc/plex-kiosk/plex-kiosk.conf
+APP="${PLEX_APP_ID:-tv.plex.PlexHTPC}"
+before="$(flatpak info --system --show-commit "$APP" 2>/dev/null || true)"
+flatpak update --system -y --noninteractive
+flatpak uninstall --system -y --noninteractive --unused || true
+after="$(flatpak info --system --show-commit "$APP" 2>/dev/null || true)"
+if [[ "$before" != "$after" && "${RESTART_AFTER_UPDATE:-yes}" == "yes" ]]; then
+  echo "Plex updated ($before -> $after), restarting kiosk"
+  systemctl restart plex-kiosk.service
+fi

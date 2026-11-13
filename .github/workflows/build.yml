@@ -1,0 +1,39 @@
+name: build
+
+on:
+  push:
+    branches: [main, test]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: shellcheck install.sh iso/build-iso.sh rootfs/usr/local/sbin/* rootfs/usr/local/bin/*
+
+  iso:
+    needs: lint
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y xorriso
+      - run: iso/build-iso.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: marquee-iso
+          path: build/marquee-*.iso*
+          retention-days: 14
+      - name: Attach ISO to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file CHANGELOG.md
+          gh release upload "$GITHUB_REF_NAME" build/marquee-*.iso build/marquee-*.iso.sha256 --clobber

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Marquee
+Description=Marquee Plex kiosk boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/marquee
+ScriptFile=/usr/share/plymouth/themes/marquee/marquee.script

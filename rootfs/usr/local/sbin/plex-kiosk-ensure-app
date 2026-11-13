@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Installs the Plex Flatpak if it is missing (runs before every kiosk start).
+set -u
+# shellcheck disable=SC1091
+. /etc/plex-kiosk/plex-kiosk.conf
+APP="${PLEX_APP_ID:-tv.plex.PlexHTPC}"
+flatpak info --system "$APP" >/dev/null 2>&1 && exit 0
+echo "Plex ($APP) not installed yet, installing..."
+for _ in $(seq 1 30); do
+  if flatpak install --system -y --noninteractive flathub "$APP"; then
+    flatpak override --system --device=all "$APP"
+    exit 0
+  fi
+  echo "Install failed (network?), retrying in 10s"
+  sleep 10
+done
+exit 1

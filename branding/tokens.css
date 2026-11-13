@@ -1,0 +1,36 @@
+/* Marquee house style - design tokens. Source of truth: BRAND.md */
+:root {
+  /* colour */
+  --mq-ink:        #0E1116;  /* background */
+  --mq-surface:    #171B22;  /* cards, sidebar */
+  --mq-surface-2:  #202632;  /* hover, inputs */
+  --mq-border:     #2A3140;
+  --mq-text:       #E8EAED;
+  --mq-text-muted: #8B93A1;
+  --mq-amber:      #F5A524;  /* primary / brand */
+  --mq-amber-600:  #D98C0B;
+  --mq-coral:      #FF6B5A;  /* accent, play */
+  --mq-success:    #3DD68C;
+  --mq-warning:    #F5A524;
+  --mq-danger:     #F2555A;
+  --mq-info:       #5AA9FF;
+
+  /* type */
+  --mq-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mq-font-mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+  --mq-text-xs: 12px; --mq-text-sm: 14px; --mq-text-md: 16px;
+  --mq-text-lg: 20px; --mq-text-xl: 28px; --mq-text-2xl: 40px;
+
+  /* shape + space */
+  --mq-radius-sm: 8px; --mq-radius: 12px; --mq-radius-lg: 20px;
+  --mq-space: 8px;
+  --mq-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  --mq-sidebar-width: 248px;
+}
+
+/* Light variant (admin pages only; the TV is always dark) */
+:root[data-theme="light"] {
+  --mq-ink: #F6F7F9; --mq-surface: #FFFFFF; --mq-surface-2: #EEF0F4;
+  --mq-border: #DDE1E8; --mq-text: #12161D; --mq-text-muted: #5B6472;
+  --mq-amber: #D98C0B;
+}
