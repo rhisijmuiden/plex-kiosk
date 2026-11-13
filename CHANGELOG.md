@@ -1,6 +1,8 @@
 # Changelog
 
 ## 0.2.1 - 2026-11-13
+- Fix: Plex never appeared (black screen) because Flatpak's bwrap refused to
+  start with inherited capabilities. The kiosk session now runs with none.
 - No more silent black screen: while Plex downloads on the first start the TV
   shows a message, and when the kiosk fails 5 times within 5 minutes it falls
   back to a login prompt that shows the error and the web admin address.

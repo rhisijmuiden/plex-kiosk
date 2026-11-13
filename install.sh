@@ -188,6 +188,10 @@ StandardOutput=journal
 StandardError=journal
 UtmpIdentifier=tty1
 UtmpMode=user
+# No capabilities at all for the kiosk session: Flatpak's bwrap refuses to run
+# ("Unexpected capabilities but not setuid") when it inherits any.
+CapabilityBoundingSet=
+AmbientCapabilities=
 Environment=XDG_SESSION_TYPE=wayland
 # Allow software rendering on GPUs without a working 3D driver.
 Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
