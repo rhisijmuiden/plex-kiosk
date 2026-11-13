@@ -106,6 +106,7 @@ Over SSH (`ssh admin@plex-kiosk.local` or the IP address):
 | `plex-kiosk restart` | Restart Plex |
 | `plex-kiosk logs` | Kiosk log of this boot |
 | `plex-kiosk update` | Update Debian and Plex now |
+| `sudo plex-kiosk repair` | Reinstall Marquee from `/opt/plex-kiosk` and restart Plex |
 | `plex-kiosk version` | Marquee and Plex version |
 | `sudo nmtui` | Set up Wi-Fi |
 

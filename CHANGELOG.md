@@ -7,6 +7,7 @@
   shows a message, and when the kiosk fails 5 times within 5 minutes it falls
   back to a login prompt that shows the error and the web admin address.
 - Software rendering allowed as a fallback for GPUs without a working 3D driver.
+- New `sudo plex-kiosk repair` command: reinstalls Marquee and restarts Plex.
 - CI installs Marquee in a clean Debian 13 container on every change.
 
 ## 0.2.0 - 2026-11-13
