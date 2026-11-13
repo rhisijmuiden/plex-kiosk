@@ -21,6 +21,27 @@ jobs:
       - run: shellcheck install.sh iso/build-iso.sh rootfs/usr/local/sbin/* rootfs/usr/local/bin/*
       - run: python3 -m py_compile rootfs/usr/local/lib/marquee-admin/*.py
 
+  install-test:
+    # Runs install.sh in a clean Debian 13 container, like the installer's late_command (no systemd running).
+    needs: lint
+    runs-on: ubuntu-latest
+    container: debian:trixie
+    steps:
+      - uses: actions/checkout@v4
+      - run: apt-get update && apt-get install -y --no-install-recommends ca-certificates git
+      - run: bash ./install.sh --unattended
+      - name: Verify result
+        run: |
+          set -x
+          systemctl is-enabled plex-kiosk.service marquee-admin.service plex-kiosk-flatpak-update.timer
+          test "$(systemctl get-default)" = graphical.target
+          flatpak info --system tv.plex.PlexHTPC
+          id kiosk
+          test -f /usr/share/plymouth/themes/marquee/marquee.plymouth
+          test -x /usr/local/sbin/plex-kiosk-fallback
+          grep -q OnFailure=plex-kiosk-fallback.service /etc/systemd/system/plex-kiosk.service
+          grep -qx 'CapabilityBoundingSet=' /etc/systemd/system/plex-kiosk.service
+
   iso:
     needs: lint
     if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')

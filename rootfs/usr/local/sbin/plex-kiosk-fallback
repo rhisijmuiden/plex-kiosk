@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Runs when plex-kiosk.service failed repeatedly: instead of a black screen,
+# show a login prompt on tty1 with what went wrong and where to look.
+set -u
+ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+mkdir -p /run/issue.d
+{
+  echo
+  echo "  Marquee: Plex could not be started."
+  echo
+  echo "  Last messages:"
+  journalctl -u plex-kiosk.service -b --no-pager -o cat -n 8 2>/dev/null | cut -c1-110 | sed 's/^/    /'
+  echo
+  echo "  Web admin : http://${ip:-<ip>}:8080"
+  echo "  Log in as the admin user and run: plex-kiosk logs"
+  echo "  Try again : sudo systemctl restart plex-kiosk"
+  echo
+} > /run/issue.d/marquee.issue
+systemctl reset-failed plex-kiosk.service || true
+systemctl start getty@tty1.service
+chvt 1 || true

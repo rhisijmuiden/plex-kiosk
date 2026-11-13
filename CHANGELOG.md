@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 - 2026-11-13
+- Fix: Plex never appeared (black screen) because Flatpak's bwrap refused to
+  start with inherited capabilities. The kiosk session now runs with none.
+- No more silent black screen: while Plex downloads on the first start the TV
+  shows a message, and when the kiosk fails 5 times within 5 minutes it falls
+  back to a login prompt that shows the error and the web admin address.
+- Software rendering allowed as a fallback for GPUs without a working 3D driver.
+- New `sudo plex-kiosk repair` command: reinstalls Marquee and restarts Plex.
+- CI installs Marquee in a clean Debian 13 container on every change.
+
 ## 0.2.0 - 2026-11-13
 - Web admin on port 8080 (sign in with the installer's admin account): status
   dashboard, update check and install for Debian, Plex and Marquee, switch

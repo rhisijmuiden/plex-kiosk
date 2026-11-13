@@ -170,7 +170,10 @@ After=systemd-user-sessions.service plymouth-quit-wait.service network-online.ta
 Wants=network-online.target
 After=getty@tty1.service
 Conflicts=getty@tty1.service
-StartLimitIntervalSec=0
+# 5 failed starts within 5 minutes: stop retrying and show a login prompt with the error.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+OnFailure=plex-kiosk-fallback.service
 
 [Service]
 Type=simple
@@ -185,7 +188,13 @@ StandardOutput=journal
 StandardError=journal
 UtmpIdentifier=tty1
 UtmpMode=user
+# No capabilities at all for the kiosk session: Flatpak's bwrap refuses to run
+# ("Unexpected capabilities but not setuid") when it inherits any.
+CapabilityBoundingSet=
+AmbientCapabilities=
 Environment=XDG_SESSION_TYPE=wayland
+# Allow software rendering on GPUs without a working 3D driver.
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=XDG_RUNTIME_DIR=/run/user/$KIOSK_UID
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$KIOSK_UID/bus
 EnvironmentFile=-/etc/plex-kiosk/plex-kiosk.conf

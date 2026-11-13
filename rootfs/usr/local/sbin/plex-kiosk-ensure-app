@@ -4,14 +4,19 @@ set -u
 # shellcheck disable=SC1091
 . /etc/plex-kiosk/plex-kiosk.conf
 APP="${PLEX_APP_ID:-tv.plex.PlexHTPC}"
+rm -f /run/issue.d/marquee.issue
 flatpak info --system "$APP" >/dev/null 2>&1 && exit 0
 echo "Plex ($APP) not installed yet, installing..."
+# Tell the person in front of the TV what is happening instead of a black screen.
+say() { printf '\033c\n\n   Marquee\n\n   %s\n' "$1" > /dev/tty1 2>/dev/null || true; }
+say "Downloading Plex, this can take a few minutes on the first start..."
 for _ in $(seq 1 30); do
   if flatpak install --system -y --noninteractive flathub "$APP"; then
     flatpak override --system --device=all "$APP"
     exit 0
   fi
   echo "Install failed (network?), retrying in 10s"
+  say "Downloading Plex failed. Is the network cable connected? Retrying..."
   sleep 10
 done
 exit 1

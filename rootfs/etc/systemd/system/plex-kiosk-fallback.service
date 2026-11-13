@@ -1,0 +1,6 @@
+[Unit]
+Description=Marquee: show a login prompt with the error when the Plex kiosk keeps failing
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/plex-kiosk-fallback
