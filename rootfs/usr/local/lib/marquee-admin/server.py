@@ -34,6 +34,9 @@ AUTO_FILE = STATE_DIR / "autocheck.json"
 # World-readable, so the TV popup (running as the kiosk user) can follow progress.
 PUBLIC_DIR = Path("/run/marquee")
 UPDATE_STATE = PUBLIC_DIR / "update-state"
+# Shared secret for the TV home screen (readable by the kiosk user only).
+KIOSK_TOKEN_FILE = PUBLIC_DIR / "kiosk-token"
+KIOSK_TOKEN = secrets.token_urlsafe(32)
 POPUP = HERE / "popup.py"
 STARTED_AT = time.time()
 CTL = "/usr/local/sbin/marquee-ctl"
@@ -87,6 +90,28 @@ def write_conf(values: dict) -> None:
 
 CHECK_HOURS = (0, 1, 2, 3, 6, 12, 24, 48)
 
+# Apps on the TV home screen. "since": first Marquee version that ships it.
+HOME_APPS = [
+    {"id": "plex", "name": "Plex", "available": True, "since": "0.4.0"},
+    {"id": "jellyfin", "name": "Jellyfin", "available": False, "since": "0.5.0"},
+    {"id": "livetv", "name": "Live TV", "available": False, "since": "0.6.0"},
+]
+HOME_START = ("home", "last", "plex")
+
+
+def home_settings(conf: dict) -> dict:
+    enabled = [a.strip() for a in conf.get("HOME_APPS", "plex").split(",") if a.strip()]
+    order = enabled + [a["id"] for a in HOME_APPS if a["id"] not in enabled]
+    apps = []
+    for app_id in order:
+        app = next((a for a in HOME_APPS if a["id"] == app_id), None)
+        if app:
+            apps.append({**app, "enabled": app["available"] and app_id in enabled})
+    start = conf.get("HOME_START", "home")
+    return {"home_screen": conf.get("HOME_SCREEN", "yes") != "no",
+            "home_start": start if start in HOME_START else "home",
+            "home_apps": apps}
+
 
 def settings() -> dict:
     conf = read_conf()
@@ -98,6 +123,7 @@ def settings() -> dict:
         "check_hours": max(0, min(hours, 168)),
         "popup": conf.get("UPDATE_POPUP", "yes") != "no",
         "kiosk_lang": conf.get("KIOSK_LANG", "en") if conf.get("KIOSK_LANG") in ("en", "nl") else "en",
+        **home_settings(conf),
     }
 
 
@@ -114,8 +140,23 @@ def save_settings(body: dict) -> dict:
         if body["kiosk_lang"] not in ("en", "nl"):
             raise ValueError("kiosk_lang")
         values["KIOSK_LANG"] = body["kiosk_lang"]
+    if "home_screen" in body:
+        values["HOME_SCREEN"] = "yes" if body["home_screen"] else "no"
+    if "home_start" in body:
+        if body["home_start"] not in HOME_START:
+            raise ValueError("home_start")
+        values["HOME_START"] = body["home_start"]
+    if "home_apps" in body:
+        known = {a["id"] for a in HOME_APPS if a["available"]}
+        apps = [str(a) for a in body["home_apps"]]
+        if any(a not in known for a in apps) or len(set(apps)) != len(apps):
+            raise ValueError("home_apps")
+        values["HOME_APPS"] = ",".join(apps)
+    restart = "HOME_SCREEN" in values and values["HOME_SCREEN"] != ("no" if read_conf().get("HOME_SCREEN") == "no" else "yes")
     if values:
         write_conf(values)
+    if restart:  # switching between home screen and Plex-only needs a new kiosk session
+        subprocess.Popen(["systemctl", "restart", "plex-kiosk.service"])
     auto.wake.set()
     return settings()
 
@@ -551,6 +592,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"error": "bad request"}, 400)
         ip = self.client_address[0]
 
+        if url.path.startswith("/api/kiosk/"):
+            return self._kiosk(url.path)
+
         if url.path == "/api/login":
             if too_many_failures(ip):
                 return self._json({"error": "too_many_attempts"}, 429)
@@ -606,6 +650,42 @@ class Handler(BaseHTTPRequestHandler):
 
         return self._json({"error": "not found"}, 404)
 
+    def _kiosk(self, path):
+        """Requests from the home screen on the TV (this machine, with the kiosk token)."""
+        local = self.client_address[0] in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
+        if not local or not secrets.compare_digest(self.headers.get("X-Marquee-Kiosk", ""), KIOSK_TOKEN):
+            return self._json({"error": "forbidden"}, 403)
+        if path == "/api/kiosk/check":
+            data = check_updates()
+            news = has_news(data)
+            if news and settings()["popup"] and not auto.popup_open and not job_running():
+                auto.show_popup(settings(), respect_playback=False)
+            return self._json({"news": news, "error": bool(data.get("error"))})
+        if path == "/api/kiosk/power":
+            action = str(self._body().get("action", ""))
+            if action not in ("reboot", "poweroff"):
+                return self._json({"error": "unknown action"}, 400)
+            self._json({"ok": True})
+            subprocess.Popen([CTL, action])
+            return None
+        return self._json({"error": "not found"}, 404)
+
+
+def write_kiosk_token():
+    """Let the kiosk user (and only that user) read the home screen token."""
+    try:
+        PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
+        os.chmod(PUBLIC_DIR, 0o755)
+        user = read_conf().get("KIOSK_USER", "kiosk")
+        gid = pwd.getpwnam(user).pw_gid
+        tmp = KIOSK_TOKEN_FILE.with_suffix(".tmp")
+        tmp.write_text(KIOSK_TOKEN + "\n")
+        os.chown(tmp, 0, gid)
+        os.chmod(tmp, 0o640)
+        os.replace(tmp, KIOSK_TOKEN_FILE)
+    except (OSError, KeyError) as exc:
+        print(f"kiosk token: {exc}", flush=True)
+
 
 def main():
     conf = read_conf()
@@ -614,6 +694,7 @@ def main():
     cached = load_auto_state().get("result")
     if cached:
         _check_cache.update(cached)
+    write_kiosk_token()
     auto.start()
     server = ThreadingHTTPServer((bind, port), Handler)
     print(f"Marquee admin listening on http://{bind}:{port}", flush=True)

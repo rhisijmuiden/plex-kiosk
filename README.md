@@ -71,6 +71,20 @@ sudo reboot
 Plex HTPC asks you to sign in once (it shows a code to enter at
 <https://plex.tv/link>). After that it remembers your account.
 
+## Home screen
+
+Since 0.4.0 the TV starts in the Marquee home screen, where you pick an app
+with the arrow keys and OK (or the mouse). Jellyfin (0.5.0) and Live TV
+(0.6.0) follow; for now Plex is the only app.
+
+- **Back to the home screen** from any app: press the Windows (Super) key, the
+  Home key of a remote or media keyboard, or hold Esc for two seconds.
+- **Settings / Info / Power** on the home screen: the web admin address,
+  version and update check, restart or turn off.
+- In the web admin under *Home screen* you choose the apps, their order and
+  what opens when the TV starts (home screen, last used app or Plex). Switch
+  the home screen off to get the old behaviour: straight into Plex.
+
 ## Web admin
 
 Open `http://<device-ip>:8080` (or `http://plex-kiosk.local:8080`) and sign in
@@ -81,6 +95,7 @@ with the admin account from the installer.
 | Menu | What it does |
 |---|---|
 | Dashboard | Is Plex running, versions, uptime, temperature, memory, disk; restart Plex |
+| Home screen | Which apps the TV shows and in which order, what opens at start, home screen on/off |
 | Updates | Check for and install Debian, Plex and Marquee updates, with live output; automatic check interval and TV popup settings |
 | Production / Test | Switch this device between the `main` and `test` branch |
 | Logs | Kiosk log of the current boot |

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC1091
+# Started by plex-kiosk.service inside cage, as the kiosk user.
+# Shows the Marquee home screen, or Plex directly when HOME_SCREEN=no.
+# If the home screen cannot start (missing packages, WebKit problem), Plex is
+# started instead so the TV keeps working.
+set -u
+. /etc/plex-kiosk/plex-kiosk.conf
+PLEX="${PLEX_APP_ID:-tv.plex.PlexHTPC}"
+
+if [[ "${HOME_SCREEN:-yes}" == "no" ]]; then
+  exec /usr/bin/flatpak run "$PLEX"
+fi
+
+export GDK_BACKEND=wayland NO_AT_BRIDGE=1 GTK_A11Y=none
+# The page is a local file and the launcher blocks every other address, so
+# WebKit's own bubblewrap sandbox is not needed (and it can't nest in the kiosk
+# session, which runs without capabilities).
+export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+
+started=$(date +%s)
+/usr/bin/python3 /usr/local/lib/marquee-home/launcher.py
+rc=$?
+if (( rc != 0 && $(date +%s) - started < 15 )); then
+  echo "marquee-session: home screen failed to start (exit $rc), starting Plex instead" >&2
+  exec /usr/bin/flatpak run "$PLEX"
+fi
+exit "$rc"

@@ -87,6 +87,8 @@ WANTED=(
   network-manager openssh-server ca-certificates curl sudo git
   # web admin + the update popup on the TV (GTK 4, Inter font)
   python3 python3-gi gir1.2-gtk-4.0 adwaita-icon-theme fonts-inter
+  # TV home screen (WebKitGTK) and its Home key (reads keyboards/remotes)
+  gir1.2-webkit-6.0 python3-evdev
   # automatic updates
   unattended-upgrades apt-listchanges
   # HDMI-CEC (Pulse-Eight USB adapter or boards with CEC)
@@ -122,7 +124,7 @@ flatpak override --system --device=all "$PLEX_APP_ID"
 # --- 5. Configuration files -----------------------------------------------------
 log "Installing configuration files"
 cp -rT "$SRC_DIR/rootfs" /
-chmod 0755 /usr/local/sbin/plex-kiosk-* /usr/local/sbin/marquee-ctl /usr/local/bin/plex-kiosk
+chmod 0755 /usr/local/sbin/plex-kiosk-* /usr/local/sbin/marquee-ctl /usr/local/bin/plex-kiosk /usr/local/bin/marquee-session
 
 install -d -m 0755 /etc/plex-kiosk
 if [[ ! -f /etc/plex-kiosk/plex-kiosk.conf ]]; then
@@ -164,7 +166,7 @@ git -C "$SRC_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null > /etc/plex-kiosk/bran
 # The kiosk unit needs the real user name and UID, so it is generated here.
 cat > /etc/systemd/system/plex-kiosk.service <<EOF
 [Unit]
-Description=Marquee Plex kiosk (cage + Plex HTPC on tty1)
+Description=Marquee kiosk (cage + home screen on tty1)
 Documentation=https://github.com/rhisijmuiden/plex-kiosk
 After=systemd-user-sessions.service plymouth-quit-wait.service network-online.target
 Wants=network-online.target
@@ -203,7 +205,8 @@ EnvironmentFile=-/run/plex-kiosk/gpu.env
 # Runs as root ('+'): installs Plex if it is missing (e.g. no network during install).
 ExecStartPre=+/usr/local/sbin/plex-kiosk-ensure-app
 ExecStartPre=+/usr/local/sbin/plex-kiosk-gpu
-ExecStart=/usr/bin/cage -d -s -- /usr/bin/flatpak run \${PLEX_APP_ID}
+# Home screen (or Plex directly when HOME_SCREEN=no), see marquee-session.
+ExecStart=/usr/bin/cage -d -s -- /usr/local/bin/marquee-session
 Restart=always
 RestartSec=3
 TimeoutStartSec=15min

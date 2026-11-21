@@ -125,6 +125,23 @@ select:focus { border-color: var(--mq-amber); outline: none; }
 .jobs li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--mq-border); font-size: var(--mq-text-sm); cursor: pointer; }
 .jobs li:hover { color: var(--mq-amber); }
 
+/* home screen */
+.app-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.app-list li { display: grid; grid-template-columns: 40px 1fr auto auto; gap: 14px; align-items: center; padding: 12px 14px;
+  border-radius: var(--mq-radius-sm); background: var(--mq-surface-2); }
+.app-list li.soon { opacity: .6; }
+.app-ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--mq-ink); }
+.app-ico svg { width: 22px; height: 22px; }
+.app-name { display: flex; flex-direction: column; min-width: 0; }
+.order { display: flex; }
+.order .icon-btn { padding: 6px; }
+.order .icon-btn:disabled { opacity: .3; cursor: default; }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--mq-ink); border: 1px solid var(--mq-border); border-radius: 10px; padding: 3px; gap: 3px; margin: 4px 0 16px; }
+.seg button { background: none; border: 0; color: var(--mq-text-muted); font: 600 var(--mq-text-sm) var(--mq-font); padding: 8px 14px; border-radius: 7px; cursor: pointer; }
+.seg button.active { background: var(--mq-surface-2); color: var(--mq-text); }
+.seg button:focus-visible { outline: 2px solid var(--mq-amber); }
+.home-switch { margin-bottom: 12px; }
+
 /* channels */
 .channels { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px; }
 .channel { text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 18px; border-radius: var(--mq-radius);
