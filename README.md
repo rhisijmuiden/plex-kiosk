@@ -81,7 +81,7 @@ with the admin account from the installer.
 | Menu | What it does |
 |---|---|
 | Dashboard | Is Plex running, versions, uptime, temperature, memory, disk; restart Plex |
-| Updates | Check for and install Debian, Plex and Marquee updates, with live output |
+| Updates | Check for and install Debian, Plex and Marquee updates, with live output; automatic check interval and TV popup settings |
 | Production / Test | Switch this device between the `main` and `test` branch |
 | Logs | Kiosk log of the current boot |
 | Power | Restart Plex, reboot, shut down |
@@ -96,6 +96,19 @@ If the GitHub repository is private, the device cannot reach it: make the
 repository public, or put a read-only token in the URL
 (`https://<token>@github.com/rhisijmuiden/plex-kiosk.git`). Debian and Plex
 updates work either way.
+
+### Automatic update check and TV popup
+
+Every `UPDATE_CHECK_HOURS` (default 6, set on the Updates page) Marquee checks
+for updates on its current channel. When a new Marquee version or a Plex update
+is found, a popup on the TV offers **Update now** or **Later**:
+
+- Use the arrow keys and OK/Enter; Back/Esc means Later. Any remote that acts
+  as a keyboard works. A remote that only talks HDMI-CEC to Plex cannot reach
+  the popup; it then closes itself after 90 seconds.
+- The popup waits while audio or video is playing.
+- **Later** asks again at the next check. **Update now** installs everything
+  and shows progress; Plex restarts by itself when it is done.
 
 ## Everyday management (SSH)
 

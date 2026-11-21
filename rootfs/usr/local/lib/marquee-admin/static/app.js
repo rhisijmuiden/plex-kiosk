@@ -18,6 +18,7 @@
     if (state.page) setTitle(state.page);
     if (state.status) renderStatus(state.status);
     if (state.updates) renderUpdates(state.updates);
+    if (state.settings) renderSettings(state.settings);
   }
   $$(".lang-switch button").forEach(b => b.addEventListener("click", () => {
     lang = b.dataset.lang;
@@ -38,7 +39,7 @@
     return data;
   }
 
-  const state = { page: null, status: null, updates: null, timer: null };
+  const state = { page: null, status: null, updates: null, settings: null, timer: null };
 
   function toast(msg) {
     const el = $("#toast"); el.textContent = msg; el.hidden = false;
@@ -84,7 +85,7 @@
     setTitle(page);
     $("#sidebar").classList.remove("open");
     if (page === "logs") loadLogs();
-    if (page === "updates") loadJobs();
+    if (page === "updates") { loadJobs(); loadSettings(); }
     if (page === "dashboard" || page === "channel") refreshStatus();
   }
   window.addEventListener("hashchange", route);
@@ -162,6 +163,41 @@
       }
     } catch (_) {}
   }
+
+  // ---------- automatic check ----------
+  const fmtTime = ts => new Date(ts * 1000).toLocaleString(lang === "nl" ? "nl-NL" : "en-GB", { dateStyle: "medium", timeStyle: "short" });
+  async function loadSettings() { try { state.settings = await api("/api/settings"); renderSettings(state.settings); } catch (_) {} }
+  function renderSettings(s) {
+    const f = $("#auto-form"), sel = $("#auto-hours"), current = String(s.check_hours);
+    const opts = [...new Set([...s.hours_options, s.check_hours])].sort((a, b) => a - b);
+    sel.innerHTML = "";
+    for (const h of opts) {
+      const o = document.createElement("option");
+      o.value = h; o.textContent = h === 0 ? t("auto.off") : t(h === 1 ? "auto.hour" : "auto.hours", { n: h });
+      sel.appendChild(o);
+    }
+    sel.value = current;
+    f.kiosk_lang.value = s.kiosk_lang;
+    f.popup.checked = s.popup;
+    const a = s.auto || {};
+    $("#auto-next").textContent = s.check_hours === 0 ? t("auto.disabled")
+      : a.next_check ? t("auto.next", { time: fmtTime(a.next_check) }) : "";
+  }
+  $("#auto-save").addEventListener("click", async e => {
+    const f = $("#auto-form"), btn = e.currentTarget; btn.disabled = true;
+    try {
+      state.settings = await api("/api/settings", {
+        check_hours: Number(f.check_hours.value), kiosk_lang: f.kiosk_lang.value, popup: f.popup.checked });
+      renderSettings(state.settings); toast(t("auto.saved"));
+    } catch (_) { toast(t("toast.error")); }
+    finally { btn.disabled = false; }
+  });
+  $("#popup-test").addEventListener("click", async e => {
+    const btn = e.currentTarget; btn.disabled = true;
+    try { await api("/api/popup/show", {}); toast(t("auto.shown")); }
+    catch (ex) { toast(t({ popup_open: "auto.err_open", job_running: "auto.err_job", no_kiosk: "auto.err_kiosk" }[ex.message] || "toast.error")); }
+    finally { btn.disabled = false; }
+  });
 
   // ---------- jobs ----------
   async function openJob(id, action) {

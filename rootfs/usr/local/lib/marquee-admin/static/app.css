@@ -107,6 +107,20 @@ nav a.active::before { content: ""; position: absolute; left: -14px; top: 8px; b
 .update-list { list-style: none; padding: 0; margin: 16px 0 20px; display: flex; flex-direction: column; }
 .update-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-top: 1px solid var(--mq-border); }
 .update-list li div { display: flex; flex-direction: column; }
+.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 16px 0 8px; }
+.settings .switch { grid-column: 1 / -1; }
+select { background: var(--mq-ink); border: 1px solid var(--mq-border); border-radius: var(--mq-radius-sm);
+  color: var(--mq-text); padding: 11px 12px; font: inherit; }
+select:focus { border-color: var(--mq-amber); outline: none; }
+.switch { flex-direction: row; align-items: center; gap: 12px; color: var(--mq-text); font-size: var(--mq-text-md); cursor: pointer; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch i { flex: none; width: 44px; height: 24px; border-radius: 999px; background: var(--mq-surface-2); border: 1px solid var(--mq-border);
+  position: relative; transition: background .2s; }
+.switch i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--mq-text-muted); transition: transform .2s, background .2s; }
+.switch input:checked + i { background: var(--mq-amber); border-color: var(--mq-amber); }
+.switch input:checked + i::after { transform: translateX(20px); background: var(--mq-ink); }
+.switch input:focus-visible + i { outline: 2px solid var(--mq-amber); outline-offset: 2px; }
 .jobs { list-style: none; margin: 0; padding: 0; }
 .jobs li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--mq-border); font-size: var(--mq-text-sm); cursor: pointer; }
 .jobs li:hover { color: var(--mq-amber); }

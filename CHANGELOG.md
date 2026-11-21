@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 - 2026-11-21
+- Automatic update check: every 6 hours by default (1-48 hours or off, set on
+  the admin's Updates page). Follows the selected channel (Production / Test).
+- When a new Marquee version or a Plex update is found, a popup appears on the
+  TV with "Update now" and "Later". Works with the keyboard and remotes that
+  send arrow/OK/Back keys. It waits while something is playing and closes by
+  itself after 90 seconds when nobody responds. "Update now" shows progress
+  on the TV; Plex comes back by itself afterwards.
+- Admin: TV language setting (English/Dutch) and a "Show popup on TV now"
+  button to try it out.
+
 ## 0.2.2 - 2026-11-13
 - PCs with two GPUs: the kiosk now picks the GPU the TV is connected to, and
   prefers Intel/AMD over NVIDIA's nouveau driver. Override with `KIOSK_GPU` in

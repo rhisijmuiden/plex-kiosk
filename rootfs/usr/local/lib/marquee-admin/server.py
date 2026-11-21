@@ -19,6 +19,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+import glob
 import grp
 import pwd
 
@@ -27,7 +28,14 @@ import pam_auth
 HERE = Path(__file__).resolve().parent
 STATIC = HERE / "static"
 CONF_FILE = Path("/etc/plex-kiosk/plex-kiosk.conf")
-JOBS_DIR = Path("/var/lib/marquee-admin/jobs")
+STATE_DIR = Path("/var/lib/marquee-admin")
+JOBS_DIR = STATE_DIR / "jobs"
+AUTO_FILE = STATE_DIR / "autocheck.json"
+# World-readable, so the TV popup (running as the kiosk user) can follow progress.
+PUBLIC_DIR = Path("/run/marquee")
+UPDATE_STATE = PUBLIC_DIR / "update-state"
+POPUP = HERE / "popup.py"
+STARTED_AT = time.time()
 CTL = "/usr/local/sbin/marquee-ctl"
 SESSION_TTL = 12 * 3600
 COOKIE = "marquee_session"
@@ -57,6 +65,59 @@ def read_conf() -> dict:
     except OSError:
         pass
     return conf
+
+
+def write_conf(values: dict) -> None:
+    """Set KEY=value lines in plex-kiosk.conf, keeping comments and order."""
+    try:
+        lines = CONF_FILE.read_text().splitlines()
+    except OSError:
+        lines = []
+    todo = dict(values)
+    for i, line in enumerate(lines):
+        m = re.match(r"^\s*([A-Z_]+)=", line)
+        if m and m.group(1) in todo:
+            lines[i] = f"{m.group(1)}={todo.pop(m.group(1))}"
+    lines += [f"{k}={v}" for k, v in todo.items()]
+    tmp = CONF_FILE.with_suffix(".tmp")
+    tmp.write_text("\n".join(lines) + "\n")
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, CONF_FILE)
+
+
+CHECK_HOURS = (0, 1, 2, 3, 6, 12, 24, 48)
+
+
+def settings() -> dict:
+    conf = read_conf()
+    try:
+        hours = int(conf.get("UPDATE_CHECK_HOURS", "6"))
+    except ValueError:
+        hours = 6
+    return {
+        "check_hours": max(0, min(hours, 168)),
+        "popup": conf.get("UPDATE_POPUP", "yes") != "no",
+        "kiosk_lang": conf.get("KIOSK_LANG", "en") if conf.get("KIOSK_LANG") in ("en", "nl") else "en",
+    }
+
+
+def save_settings(body: dict) -> dict:
+    values = {}
+    if "check_hours" in body:
+        hours = int(body["check_hours"])
+        if not 0 <= hours <= 168:
+            raise ValueError("check_hours")
+        values["UPDATE_CHECK_HOURS"] = str(hours)
+    if "popup" in body:
+        values["UPDATE_POPUP"] = "yes" if body["popup"] else "no"
+    if "kiosk_lang" in body:
+        if body["kiosk_lang"] not in ("en", "nl"):
+            raise ValueError("kiosk_lang")
+        values["KIOSK_LANG"] = body["kiosk_lang"]
+    if values:
+        write_conf(values)
+    auto.wake.set()
+    return settings()
 
 
 def run(cmd, timeout=30) -> str:
@@ -163,7 +224,7 @@ def status() -> dict:
 
 
 # --- jobs -----------------------------------------------------------------------
-def start_job(action: str) -> str:
+def start_job(action: str, public_state: bool = False) -> str:
     job_id = time.strftime("%Y%m%d-%H%M%S-") + secrets.token_hex(3)
     JOBS_DIR.mkdir(parents=True, exist_ok=True)
     log = JOBS_DIR / f"{job_id}.log"
@@ -171,7 +232,14 @@ def start_job(action: str) -> str:
     meta = JOBS_DIR / f"{job_id}.json"
     meta.write_text(json.dumps({"id": job_id, "action": action, "started": time.time()}))
     args = " ".join(JOB_ACTIONS[action])
-    script = f'{CTL} {args} > "{log}" 2>&1; echo $? > "{rc}"'
+    script = f'{CTL} {args} > "{log}" 2>&1; r=$?; echo $r > "{rc}"'
+    if public_state:
+        # The TV popup shows progress from this file.
+        PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
+        os.chmod(PUBLIC_DIR, 0o755)
+        UPDATE_STATE.write_text("running\n")
+        os.chmod(UPDATE_STATE, 0o644)
+        script += f'; if [ $r = 0 ]; then echo success; else echo failed; fi > "{UPDATE_STATE}"'
     # Run outside this service so a reinstall that restarts the admin keeps going.
     subprocess.run(["systemd-run", f"--unit=marquee-job-{job_id}", "--collect", "--quiet",
                     "/bin/bash", "-c", script], check=True)
@@ -208,16 +276,191 @@ def latest_jobs(n=10) -> list:
 _check_cache: dict = {}
 
 
-def check_updates() -> dict:
+def load_auto_state() -> dict:
+    try:
+        return json.loads(AUTO_FILE.read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_auto_state(**changes) -> None:
+    data = load_auto_state()
+    data.update(changes)
+    try:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        AUTO_FILE.write_text(json.dumps(data))
+    except OSError:
+        pass
+
+
+def check_updates(automatic: bool = False) -> dict:
     out = run([CTL, "check"], timeout=300)
     try:
         data = json.loads(out)
     except json.JSONDecodeError:
         data = {"error": "Update check failed"}
     data["checked_at"] = time.time()
+    data["automatic"] = automatic
     _check_cache.clear()
     _check_cache.update(data)
+    changes = {"result": data}
+    if automatic:
+        changes["last_auto"] = data["checked_at"]
+    save_auto_state(**changes)
     return data
+
+
+def has_news(data: dict) -> bool:
+    """Worth a popup: a new Marquee version or a Plex/runtime update.
+    (Debian packages alone install themselves every night.)"""
+    return (data.get("marquee_behind") or 0) > 0 or (data.get("flatpak") or 0) > 0
+
+
+def job_running() -> bool:
+    return any(j.get("state") == "running" for j in latest_jobs(5))
+
+
+def kiosk_session():
+    """(user, uid, wayland display) of the running cage session, or None."""
+    if run(["systemctl", "is-active", "plex-kiosk.service"]) != "active":
+        return None
+    user = read_conf().get("KIOSK_USER", "kiosk")
+    try:
+        uid = pwd.getpwnam(user).pw_uid
+    except KeyError:
+        return None
+    sockets = sorted(p for p in glob.glob(f"/run/user/{uid}/wayland-*") if not p.endswith(".lock"))
+    if not sockets:
+        return None
+    return user, uid, os.path.basename(sockets[0])
+
+
+def media_playing(user: str, uid: int) -> bool:
+    """True while an audio stream is running (someone is watching or listening)."""
+    out = run(["runuser", "-u", user, "--", "env", f"XDG_RUNTIME_DIR=/run/user/{uid}", "pw-dump"], timeout=10)
+    try:
+        objects = json.loads(out)
+    except json.JSONDecodeError:
+        return False
+    for obj in objects:
+        info = obj.get("info") or {}
+        props = info.get("props") or {}
+        if str(props.get("media.class", "")).startswith("Stream/Output") and info.get("state") == "running":
+            return True
+    return False
+
+
+class AutoUpdater(threading.Thread):
+    """Checks for updates every UPDATE_CHECK_HOURS and offers them on the TV."""
+
+    FIRST_DELAY = 300   # leave the device alone for 5 minutes after start
+    RETRY = 300         # when the popup can't be shown yet (playing, busy)
+
+    def __init__(self):
+        super().__init__(daemon=True, name="auto-update")
+        self.wake = threading.Event()
+        self.pending = bool(load_auto_state().get("pending"))
+        self.next_check = None
+        self.next_popup_try = 0.0
+        self.popup_open = False
+        self.popup_lock = threading.Lock()
+
+    def info(self) -> dict:
+        st = load_auto_state()
+        return {"next_check": self.next_check, "last_auto": st.get("last_auto"),
+                "pending_popup": self.pending, "popup_open": self.popup_open}
+
+    def run(self):
+        while True:
+            try:
+                self.step()
+            except Exception as exc:  # never let the scheduler die
+                print(f"auto-update: {exc}", flush=True)
+            self.wake.wait(60)
+            self.wake.clear()
+
+    def step(self):
+        cfg = settings()
+        hours = cfg["check_hours"]
+        now = time.time()
+        if hours <= 0:
+            self.next_check = None
+        else:
+            last = load_auto_state().get("last_auto") or 0
+            self.next_check = max(last + hours * 3600, STARTED_AT + self.FIRST_DELAY)
+            if now >= self.next_check:
+                data = check_updates(automatic=True)
+                print(f"auto-update: checked, news={has_news(data)}", flush=True)
+                self.set_pending(cfg["popup"] and has_news(data))
+                self.next_check = data["checked_at"] + hours * 3600
+        if self.pending and cfg["popup"] and now >= self.next_popup_try:
+            if not self.show_popup(cfg, respect_playback=True):
+                self.next_popup_try = now + self.RETRY
+
+    def set_pending(self, value: bool):
+        self.pending = value
+        save_auto_state(pending=value)
+
+    def show_popup(self, cfg: dict, respect_playback: bool) -> bool:
+        """Start the popup on the TV. Returns False when it can't be shown now."""
+        if self.popup_open or job_running():
+            return False
+        session = kiosk_session()
+        if not session:
+            return False
+        user, uid, display = session
+        if respect_playback and media_playing(user, uid):
+            return False
+        data = _check_cache or load_auto_state().get("result") or {}
+        st = status_marquee()
+        ips = run(["hostname", "-I"]).split()
+        port = read_conf().get("ADMIN_PORT", "8080")
+        cmd = ["systemd-run", f"--unit=marquee-popup-{int(time.time())}", "--uid", user,
+               "--pipe", "--wait", "--collect", "--quiet",
+               "-E", f"XDG_RUNTIME_DIR=/run/user/{uid}", "-E", f"WAYLAND_DISPLAY={display}",
+               "-E", f"HOME={pwd.getpwnam(user).pw_dir}", "-E", "LANG=C.UTF-8",
+               "-E", "GDK_BACKEND=wayland", "-E", "NO_AT_BRIDGE=1", "-E", "GTK_A11Y=none",
+               "/usr/bin/python3", str(POPUP),
+               "--lang", cfg["kiosk_lang"],
+               "--version", str(data.get("marquee_latest") or "") if (data.get("marquee_behind") or 0) > 0 else "",
+               "--current", st["version"], "--channel", st["channel"],
+               "--plex", str(data.get("flatpak") or 0), "--debian", str(data.get("debian") or 0),
+               "--state-file", str(UPDATE_STATE),
+               "--admin-url", f"http://{ips[0]}:{port}" if ips else ""]
+        try:
+            proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                    text=True)  # stderr goes to the journal
+        except OSError as exc:
+            print(f"auto-update: popup failed: {exc}", flush=True)
+            return False
+        self.popup_open = True
+        self.set_pending(False)
+        threading.Thread(target=self._follow, args=(proc,), daemon=True).start()
+        return True
+
+    def _follow(self, proc):
+        try:
+            for line in proc.stdout:
+                choice = line.strip()
+                if choice == "update":
+                    print("auto-update: viewer chose Update now", flush=True)
+                    start_job("update-all", public_state=True)
+                elif choice == "later":
+                    print("auto-update: viewer chose Later", flush=True)
+            proc.wait()
+        finally:
+            self.popup_open = False
+
+
+def status_marquee() -> dict:
+    conf = read_conf()
+    marquee_dir = conf.get("MARQUEE_DIR", "/opt/plex-kiosk")
+    branch = run(["git", "-C", marquee_dir, "rev-parse", "--abbrev-ref", "HEAD"]) \
+        or read("/etc/plex-kiosk/branch", "main")
+    return {"version": read("/etc/plex-kiosk/version", "?"), "channel": branch}
+
+
+auto = AutoUpdater()
 
 
 # --- HTTP --------------------------------------------------------------------------
@@ -287,6 +530,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(status())
         if url.path == "/api/updates":
             return self._json(_check_cache or {})
+        if url.path == "/api/settings":
+            return self._json({**settings(), "auto": auto.info(), "hours_options": CHECK_HOURS})
         if url.path == "/api/jobs":
             return self._json(latest_jobs())
         if url.path.startswith("/api/jobs/"):
@@ -331,6 +576,24 @@ class Handler(BaseHTTPRequestHandler):
         if url.path == "/api/updates/check":
             return self._json(check_updates())
 
+        if url.path == "/api/settings":
+            try:
+                saved = save_settings(self._body())
+            except (TypeError, ValueError):
+                return self._json({"error": "invalid settings"}, 400)
+            time.sleep(0.2)  # let the scheduler recompute the next check
+            return self._json({**saved, "auto": auto.info(), "hours_options": CHECK_HOURS})
+
+        if url.path == "/api/popup/show":
+            # Preview / "show it now" from the admin page: ignores playback.
+            if auto.popup_open:
+                return self._json({"error": "popup_open"}, 409)
+            if job_running():
+                return self._json({"error": "job_running"}, 409)
+            if not auto.show_popup({**settings()}, respect_playback=False):
+                return self._json({"error": "no_kiosk"}, 409)
+            return self._json({"ok": True})
+
         if url.path == "/api/action":
             action = str(self._body().get("action", ""))
             if action in JOB_ACTIONS:
@@ -348,6 +611,10 @@ def main():
     conf = read_conf()
     port = int(conf.get("ADMIN_PORT", "8080"))
     bind = conf.get("ADMIN_BIND", "0.0.0.0")
+    cached = load_auto_state().get("result")
+    if cached:
+        _check_cache.update(cached)
+    auto.start()
     server = ThreadingHTTPServer((bind, port), Handler)
     print(f"Marquee admin listening on http://{bind}:{port}", flush=True)
     server.serve_forever()

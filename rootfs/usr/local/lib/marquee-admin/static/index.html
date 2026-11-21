@@ -96,6 +96,23 @@
           </ul>
           <button class="btn primary" data-action="update-all" data-i18n="upd.all">Update everything</button>
         </div>
+        <div class="card">
+          <div class="row-between">
+            <div><h3 data-i18n="auto.title">Automatic update check</h3><p class="muted" data-i18n="auto.hint">Marquee looks for new versions in the background and shows a popup on the TV when one is found.</p></div>
+          </div>
+          <form id="auto-form" class="settings">
+            <label class="field"><span data-i18n="auto.interval">Check every</span>
+              <select name="check_hours" id="auto-hours"></select></label>
+            <label class="field"><span data-i18n="auto.lang">Language on the TV</span>
+              <select name="kiosk_lang"><option value="en">English</option><option value="nl">Nederlands</option></select></label>
+            <label class="switch"><input type="checkbox" name="popup"><i></i><span data-i18n="auto.popup">Show a popup on the TV when an update is found</span></label>
+          </form>
+          <p class="muted" id="auto-next"></p>
+          <div class="row-end">
+            <button class="btn" id="popup-test" data-i18n="auto.show">Show popup on TV now</button>
+            <button class="btn primary" id="auto-save" data-i18n="auto.save">Save</button>
+          </div>
+        </div>
         <div class="card"><h3 data-i18n="upd.history">Recent tasks</h3><ul class="jobs" id="jobs"></ul></div>
       </section>
 
