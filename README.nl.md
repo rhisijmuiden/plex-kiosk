@@ -81,7 +81,7 @@ in met het admin-account uit de installer.
 | Menu | Wat het doet |
 |---|---|
 | Overzicht | Draait Plex, versies, uptime, temperatuur, geheugen, schijf; Plex herstarten |
-| Updates | Updates voor Debian, Plex en Marquee controleren en installeren, met live uitvoer |
+| Updates | Updates voor Debian, Plex en Marquee controleren en installeren, met live uitvoer; instellingen voor automatisch controleren en de pop-up op de tv |
 | Productie / Test | Dit apparaat wisselen tussen de `main`- en `test`-branch |
 | Logboek | Kiosk-log van de huidige opstart |
 | Aan / uit | Plex herstarten, apparaat herstarten, uitschakelen |
@@ -96,6 +96,21 @@ Is de GitHub-repo privé, dan kan het apparaat er niet bij: maak de repo openbaa
 of zet een alleen-lezen token in de URL
 (`https://<token>@github.com/rhisijmuiden/plex-kiosk.git`). Updates van Debian en
 Plex werken in beide gevallen.
+
+### Automatisch controleren en pop-up op de tv
+
+Elke `UPDATE_CHECK_HOURS` uur (standaard 6, in te stellen op de pagina Updates)
+controleert Marquee op updates voor het gekozen kanaal. Is er een nieuwe
+Marquee-versie of een Plex-update, dan verschijnt op de tv een pop-up met
+**Nu bijwerken** of **Later**:
+
+- Kies met de pijltjestoetsen en OK/Enter; Terug/Esc betekent Later. Elke
+  afstandsbediening die zich als toetsenbord gedraagt werkt. Een
+  afstandsbediening die alleen via HDMI-CEC met Plex praat kan de pop-up niet
+  bedienen; die sluit dan na 90 seconden vanzelf.
+- De pop-up wacht zolang er audio of video speelt.
+- **Later** vraagt het bij de volgende controle opnieuw. **Nu bijwerken**
+  installeert alles en toont de voortgang; Plex start daarna vanzelf opnieuw.
 
 ## Dagelijks beheer (SSH)
 

@@ -85,8 +85,8 @@ WANTED=(
   plymouth plymouth-themes
   # networking + remote management
   network-manager openssh-server ca-certificates curl sudo git
-  # web admin
-  python3
+  # web admin + the update popup on the TV (GTK 4, Inter font)
+  python3 python3-gi gir1.2-gtk-4.0 adwaita-icon-theme fonts-inter
   # automatic updates
   unattended-upgrades apt-listchanges
   # HDMI-CEC (Pulse-Eight USB adapter or boards with CEC)

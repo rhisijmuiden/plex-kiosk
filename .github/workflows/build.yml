@@ -43,6 +43,8 @@ jobs:
           /usr/local/sbin/plex-kiosk-gpu
           grep -q OnFailure=plex-kiosk-fallback.service /etc/systemd/system/plex-kiosk.service
           grep -qx 'CapabilityBoundingSet=' /etc/systemd/system/plex-kiosk.service
+          grep -qx 'UPDATE_CHECK_HOURS=6' /etc/plex-kiosk/plex-kiosk.conf
+          python3 -c "import gi; gi.require_version('Gtk', '4.0'); from gi.repository import Gtk"
 
   iso:
     needs: lint
