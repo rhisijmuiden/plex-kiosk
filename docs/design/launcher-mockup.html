@@ -1,0 +1,475 @@
+<title>Marquee Home Screen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: a 1920x1080 TV stage scaled to fit, with screen tabs above it. Single dark look (the TV is always dark, per BRAND.md). */
+:root {
+  --ink: #0E1116; --surface: #171B22; --surface-2: #202632; --border: #2A3140;
+  --text: #E8EAED; --muted: #8B93A1; --amber: #F5A524; --amber-600: #D98C0B; --coral: #FF6B5A;
+  --success: #3DD68C; --info: #5AA9FF;
+  --plex: #E5A00D; --jelly: #8A5CF6; --jelly-2: #2FA7D9; --tv: #FF6B5A;
+  --font: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { background: var(--ink); color: var(--text); font-family: var(--font); }
+body { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; }
+.wrap { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.brand { display: flex; gap: 10px; align-items: center; font-weight: 700; letter-spacing: -.02em; font-size: 18px; }
+.brand small { color: var(--muted); font-weight: 500; letter-spacing: 0; font-size: 13px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button, .lang button { font: 600 13px var(--font); color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.tabs button[aria-selected="true"], .lang button[aria-pressed="true"] { background: var(--amber); color: var(--ink); border-color: var(--amber); }
+.tabs button:focus-visible, .lang button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.lang { display: flex; gap: 4px; }
+.note { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 80ch; }
+.note kbd { font: 500 12px var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; color: var(--text); }
+
+/* TV frame */
+.tvbox { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 0 0 1px var(--border), 0 30px 80px rgba(0,0,0,.55); }
+.stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; background: var(--ink); }
+.screen { position: absolute; inset: 0; }
+
+/* ---------- HOME ---------- */
+.home { padding: 52px 96px; display: flex; flex-direction: column; gap: 30px;
+  background: radial-gradient(1200px 600px at 85% -10%, rgba(245,165,36,.14), transparent 60%), radial-gradient(900px 500px at -5% 110%, rgba(255,107,90,.10), transparent 60%), var(--ink); }
+.hbar { display: flex; justify-content: space-between; align-items: center; }
+.hlogo { display: flex; align-items: center; gap: 16px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; }
+.hright { display: flex; align-items: center; gap: 36px; color: var(--muted); font-size: 24px; }
+.clock { font-size: 44px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.net { display: flex; align-items: center; gap: 10px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--success); box-shadow: 0 0 12px var(--success); }
+.greet h1 { margin: 0; font-size: 64px; font-weight: 800; letter-spacing: -.035em; line-height: 1.05; }
+.greet p { margin: 10px 0 0; font-size: 30px; color: var(--muted); }
+.apps { display: flex; gap: 40px; }
+.app { position: relative; width: 520px; height: 290px; border-radius: 28px; padding: 36px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+  background: var(--surface); border: 2px solid var(--border); transition: transform .18s ease, box-shadow .18s ease, border-color .18s; cursor: pointer; }
+.app::before { content: ""; position: absolute; inset: 0; opacity: .9; background: var(--g); }
+.app > * { position: relative; }
+.app .glyph { width: 88px; height: 88px; border-radius: 22px; display: grid; place-items: center; background: rgba(0,0,0,.28); backdrop-filter: blur(4px); }
+.app h2 { margin: 0; font-size: 48px; font-weight: 800; letter-spacing: -.03em; }
+.app .sub { font-size: 24px; color: rgba(255,255,255,.82); margin-top: 6px; }
+.app .badge { position: absolute; top: 36px; right: 36px; font: 700 18px var(--font); letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px; border-radius: 999px; background: rgba(0,0,0,.35); }
+.app.plex { --g: linear-gradient(140deg, #3a2a08 0%, #1d1a14 55%, #171B22 100%); }
+.app.jelly { --g: linear-gradient(140deg, #3a2470 0%, #1b2a46 60%, #171B22 100%); }
+.app.live { --g: linear-gradient(140deg, #5a1f1a 0%, #2a1a1d 55%, #171B22 100%); }
+.app.live .badge { background: var(--coral); color: var(--ink); }
+.focus { outline: none; }
+.f-on { transform: scale(1.06); border-color: var(--amber) !important; box-shadow: 0 0 0 4px var(--amber), 0 24px 60px rgba(245,165,36,.25); z-index: 2; }
+.rowtitle { display: flex; align-items: baseline; gap: 16px; font-size: 28px; font-weight: 700; margin-bottom: 18px; }
+.rowtitle span { font-size: 22px; color: var(--muted); font-weight: 500; }
+.chans { display: flex; gap: 28px; }
+.chan { width: 322px; height: 176px; border-radius: 20px; background: var(--surface); border: 2px solid var(--border); padding: 22px; display: flex; flex-direction: column; justify-content: space-between; transition: transform .18s, box-shadow .18s; cursor: pointer; }
+.chan .ch-top { display: flex; align-items: center; gap: 14px; }
+.logo { width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: 20px; color: #fff; flex: none; }
+.chan .num { font: 500 20px var(--mono); color: var(--muted); }
+.chan .cname { font-size: 22px; font-weight: 600; }
+.chan .prog { font-size: 24px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--coral); border-radius: 3px; }
+.hfoot { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
+.sys { display: flex; gap: 20px; }
+.pill { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 600; padding: 16px 26px; border-radius: 999px; background: var(--surface); border: 2px solid var(--border); transition: transform .18s, box-shadow .18s; cursor: pointer; }
+.hint { color: var(--muted); font-size: 22px; display: flex; gap: 28px; }
+.hint b { color: var(--text); font-weight: 600; }
+.k { display: inline-grid; place-items: center; min-width: 40px; height: 36px; padding: 0 8px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); font: 600 18px var(--font); color: var(--text); margin-right: 8px; }
+
+/* ---------- GUIDE ---------- */
+.guide { padding: 52px 64px; display: grid; grid-template-rows: auto auto 1fr auto; gap: 28px; background: var(--ink); }
+.ghead { display: flex; justify-content: space-between; align-items: center; }
+.ghead h1 { margin: 0; font-size: 52px; font-weight: 800; letter-spacing: -.03em; display: flex; align-items: center; gap: 18px; }
+.live-tag { font: 800 18px var(--font); letter-spacing: .08em; background: var(--coral); color: var(--ink); padding: 6px 12px; border-radius: 8px; }
+.gtop { display: grid; grid-template-columns: 720px 1fr; gap: 40px; }
+.preview { height: 405px; border-radius: 22px; position: relative; overflow: hidden; background: var(--pv, linear-gradient(135deg,#243b55,#141E30)); }
+.preview::after { content: ""; position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.65), transparent 55%); }
+.preview .pvlabel { position: absolute; left: 28px; bottom: 24px; z-index: 1; font-size: 26px; font-weight: 700; }
+.preview .pvlive { position: absolute; left: 28px; top: 24px; z-index: 1; }
+.preview svg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .35; }
+.detail { display: flex; flex-direction: column; gap: 14px; padding-top: 8px; }
+.detail .when { font: 500 24px var(--mono); color: var(--amber); }
+.detail h2 { margin: 0; font-size: 56px; font-weight: 800; letter-spacing: -.03em; line-height: 1.05; }
+.detail .meta { display: flex; gap: 12px; }
+.chip { font-size: 20px; font-weight: 600; padding: 6px 14px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+.detail p { margin: 0; font-size: 26px; line-height: 1.45; color: #C9CED6; max-width: 58ch; }
+.grid { position: relative; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); overflow: hidden; }
+.times { display: flex; height: 52px; border-bottom: 1px solid var(--border); padding-left: 330px; color: var(--muted); font: 500 20px var(--mono); }
+.times div { width: 300px; padding: 14px 16px; border-left: 1px solid var(--border); }
+.grow { display: flex; height: 78px; border-bottom: 1px solid var(--border); }
+.gch { width: 330px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 20px; border-right: 1px solid var(--border); }
+.gch .num { font: 500 20px var(--mono); color: var(--muted); width: 32px; }
+.gch .cname { font-size: 22px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gch .logo { width: 44px; height: 44px; font-size: 17px; border-radius: 10px; }
+.gprogs { position: relative; flex: 1; }
+.gp { position: absolute; top: 7px; bottom: 7px; border-radius: 12px; background: var(--surface-2); padding: 0 16px; display: flex; flex-direction: column; justify-content: center; overflow: hidden; border: 2px solid transparent; cursor: pointer; transition: background .12s; }
+.gp .t { font-size: 21px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gp .s { font: 500 15px var(--mono); color: var(--muted); }
+.gp.now { background: #2a2f3c; }
+.gp.f-on { transform: none; background: var(--amber); color: var(--ink); border-color: var(--amber); box-shadow: 0 0 0 3px rgba(245,165,36,.35); }
+.gp.f-on .s { color: rgba(14,17,22,.7); }
+.nowline { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--coral); z-index: 3; box-shadow: 0 0 10px var(--coral); }
+.nowline::before { content: ""; position: absolute; top: 0; left: -6px; width: 15px; height: 15px; border-radius: 50%; background: var(--coral); }
+
+/* ---------- PLAYER ---------- */
+.player { background: var(--pv, linear-gradient(135deg,#243b55,#141E30)); }
+.player svg.art { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .45; }
+.player .shade { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(8,10,14,.95) 0%, rgba(8,10,14,.6) 28%, transparent 55%); }
+.osd { position: absolute; left: 80px; right: 80px; bottom: 70px; display: grid; grid-template-columns: auto 1fr auto; gap: 36px; align-items: end; }
+.osd .logo { width: 120px; height: 120px; font-size: 40px; border-radius: 26px; }
+.osd .num { font: 500 30px var(--mono); color: var(--amber); }
+.osd h2 { margin: 4px 0 14px; font-size: 64px; font-weight: 800; letter-spacing: -.03em; }
+.osd .prow { display: flex; align-items: center; gap: 20px; font: 500 24px var(--mono); color: var(--muted); }
+.osd .bar { flex: 1; height: 8px; }
+.osd .next { font-size: 26px; color: var(--muted); margin-top: 16px; }
+.osd .next b { color: var(--text); font-weight: 600; }
+.osd .ptop { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; }
+.ptopbar { position: absolute; top: 56px; left: 80px; right: 80px; display: flex; justify-content: space-between; align-items: center; }
+.ptopbar .clock { font-size: 40px; }
+.phint { color: var(--muted); font-size: 22px; display: flex; gap: 24px; }
+
+/* ---------- ADMIN (browser, not TV) ---------- */
+.admin { display: grid; grid-template-columns: 248px 1fr; background: var(--ink); font-size: 15px; }
+.admin .side { background: var(--surface); border-right: 1px solid var(--border); padding: 22px 14px; display: flex; flex-direction: column; gap: 4px; }
+.admin .side .brandrow { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; padding: 6px 10px 22px; letter-spacing: -.02em; }
+.admin .nav { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; color: var(--muted); font-weight: 500; }
+.admin .nav.on { background: rgba(245,165,36,.12); color: var(--amber); font-weight: 600; }
+.admin .nav svg { width: 18px; height: 18px; }
+.admin .side .ver { margin-top: auto; padding: 10px 12px; font: 500 12px var(--mono); color: var(--muted); }
+.admin main { padding: 34px 44px; display: flex; flex-direction: column; gap: 22px; overflow: hidden; }
+.admin h1 { margin: 0; font-size: 28px; letter-spacing: -.02em; }
+.admin .lead { margin: 4px 0 0; color: var(--muted); }
+.acols { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: start; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+.card h3 { margin: 0; font-size: 17px; }
+.card .desc { margin: -8px 0 0; color: var(--muted); font-size: 13.5px; }
+.tile-row { display: grid; grid-template-columns: 22px 40px 1fr auto auto; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); }
+.drag { color: var(--muted); letter-spacing: -2px; font-weight: 700; }
+.tile-row .ico { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; }
+.tile-row b { display: block; font-weight: 600; }
+.tile-row small { color: var(--muted); font-size: 12.5px; }
+.status { font-size: 12px; font-weight: 600; padding: 4px 9px; border-radius: 999px; }
+.status.ok { color: var(--success); background: rgba(61,214,140,.12); }
+.status.warn { color: var(--amber); background: rgba(245,165,36,.12); }
+.toggle { width: 42px; height: 24px; border-radius: 12px; background: var(--border); position: relative; border: 0; cursor: pointer; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--text); transition: left .15s; }
+.toggle[aria-checked="true"] { background: var(--amber); }
+.toggle[aria-checked="true"]::after { left: 21px; background: var(--ink); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; color: var(--muted); font-weight: 500; }
+.input, .select { background: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font: 14px var(--font); }
+.input.mono { font-family: var(--mono); font-size: 13px; }
+.seg { display: inline-flex; background: var(--ink); border: 1px solid var(--border); border-radius: 9px; padding: 3px; gap: 3px; }
+.seg span { padding: 7px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; color: var(--muted); }
+.seg span.on { background: var(--surface-2); color: var(--text); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.btns { display: flex; gap: 10px; }
+.btn { font: 600 14px var(--font); padding: 10px 16px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+.btn.primary { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+.okline { font-size: 13px; color: var(--success); }
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><g fill="#F5A524"><circle cx="14" cy="14" r="3.4"/><circle cx="23" cy="9" r="3.4"/><circle cx="32" cy="7.5" r="3.4"/><circle cx="41" cy="9" r="3.4"/><circle cx="50" cy="14" r="3.4"/></g><rect x="8" y="22" width="48" height="34" rx="7" fill="none" stroke="#F5A524" stroke-width="4"/><path d="M28 31v16l13-8z" fill="#FF6B5A"/></svg>
+      <span>Marquee <small data-i="proto">Home screen prototype</small></span>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-s="home" aria-selected="true" data-i="t_home">Home screen</button>
+      <button role="tab" data-s="guide" aria-selected="false" data-i="t_guide">Live TV guide</button>
+      <button role="tab" data-s="player" aria-selected="false" data-i="t_player">Watching TV</button>
+      <button role="tab" data-s="admin" aria-selected="false" data-i="t_admin">Web admin</button>
+    </div>
+    <div class="lang"><button data-l="en" aria-pressed="true">EN</button><button data-l="nl" aria-pressed="false">NL</button></div>
+  </div>
+  <p class="note" data-i="howto" data-html>Click the TV, then use <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> like a remote. <kbd>Enter</kbd> = OK, <kbd>Esc</kbd> = Back. You can also click tiles. Channels and programmes are sample data.</p>
+
+  <div class="tvbox" id="tv" tabindex="0" aria-label="TV preview">
+    <div class="stage" id="stage">
+
+      <!-- HOME -->
+      <section class="screen home" id="s-home">
+        <div class="hbar">
+          <div class="hlogo">
+            <svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><g fill="#F5A524"><circle cx="14" cy="14" r="3.4"/><circle cx="23" cy="9" r="3.4"/><circle cx="32" cy="7.5" r="3.4"/><circle cx="41" cy="9" r="3.4"/><circle cx="50" cy="14" r="3.4"/></g><rect x="8" y="22" width="48" height="34" rx="7" fill="none" stroke="#F5A524" stroke-width="4"/><path d="M28 31v16l13-8z" fill="#FF6B5A"/></svg>
+            Marquee
+          </div>
+          <div class="hright">
+            <div class="net"><span class="dot"></span><span data-i="online">Online</span></div>
+            <div data-i="date">Saturday 21 November</div>
+            <div class="clock">21:42</div>
+          </div>
+        </div>
+        <div class="greet">
+          <h1 data-i="greet">Good evening</h1>
+          <p data-i="ask">What would you like to watch?</p>
+        </div>
+        <div class="apps" data-row="0">
+          <div class="app plex f" data-go="plex">
+            <div class="glyph"><svg width="48" height="48" viewBox="0 0 48 48"><path d="M14 6h12l12 18-12 18H14l12-18z" fill="#E5A00D"/></svg></div>
+            <div><h2>Plex</h2><div class="sub" data-i="plex_sub">Movies and series from your Plex server</div></div>
+          </div>
+          <div class="app jelly f" data-go="jelly">
+            <div class="glyph"><svg width="50" height="50" viewBox="0 0 48 48"><defs><linearGradient id="jg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#AA5CC3"/><stop offset="1" stop-color="#00A4DC"/></linearGradient></defs><path d="M24 6C17 6 5 28 8 34s29 6 32 0S31 6 24 6zm0 12c3 0 9 11 7.5 14s-13.5 3-15 0S21 18 24 18z" fill="url(#jg)"/></svg></div>
+            <div><h2>Jellyfin</h2><div class="sub" data-i="jelly_sub">Your own media library</div></div>
+          </div>
+          <div class="app live f" data-go="guide">
+            <span class="badge" data-i="live">Live</span>
+            <div class="glyph"><svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#FF6B5A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="14" width="36" height="25" rx="5"/><path d="M17 6l7 8 7-8"/><path d="M14 44h20"/></svg></div>
+            <div><h2 data-i="livetv">Live TV</h2><div class="sub" data-i="live_sub">9 channels · guide up to date</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="rowtitle"><span style="color:var(--text);font-size:28px;font-weight:700" data-i="onnow">On now</span><span data-i="onnow_sub">Live TV · OK to watch</span></div>
+          <div class="chans" data-row="1" id="homeChans"></div>
+        </div>
+        <div class="hfoot">
+          <div class="sys" data-row="2">
+            <div class="pill f" data-go="settings"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i="settings">Settings</span></div>
+            <div class="pill f" data-go="info"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Info</span></div>
+            <div class="pill f" data-go="power"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg><span data-i="power">Power</span></div>
+          </div>
+          <div class="hint"><span><span class="k">OK</span><span data-i="h_open">Open</span></span><span><span class="k">⌂</span><span data-i="h_home">Home button always brings you back here</span></span></div>
+        </div>
+      </section>
+
+      <!-- GUIDE -->
+      <section class="screen guide" id="s-guide" hidden>
+        <div class="ghead">
+          <h1><span data-i="livetv">Live TV</span><span class="live-tag" data-i="live">LIVE</span></h1>
+          <div class="hright"><div data-i="date">Saturday 21 November</div><div class="clock">21:42</div></div>
+        </div>
+        <div class="gtop">
+          <div class="preview" id="pv"><svg viewBox="0 0 720 405" preserveAspectRatio="none" aria-hidden="true"><path d="M0 300 C120 240 220 330 360 270 S600 210 720 260 V405 H0Z" fill="#fff" opacity=".25"/><path d="M0 340 C160 300 260 360 400 320 S620 290 720 320 V405 H0Z" fill="#fff" opacity=".3"/></svg><span class="pvlive live-tag" data-i="live">LIVE</span><span class="pvlabel" id="pvlabel"></span></div>
+          <div class="detail">
+            <div class="when" id="dWhen"></div>
+            <h2 id="dTitle"></h2>
+            <div class="meta" id="dMeta"></div>
+            <p id="dDesc"></p>
+          </div>
+        </div>
+        <div class="grid" id="grid">
+          <div class="times"><div>21:00</div><div>21:30</div><div>22:00</div><div>22:30</div><div>23:00</div></div>
+          <div id="grows"></div>
+          <div class="nowline" style="left:1582px;display:none"></div>
+        </div>
+        <div class="hint" style="justify-content:space-between"><span><span class="k">↑↓</span><span data-i="g_ch">Channel</span>&nbsp;&nbsp;&nbsp;<span class="k">←→</span><span data-i="g_time">Earlier / later</span>&nbsp;&nbsp;&nbsp;<span class="k">OK</span><span data-i="g_watch">Watch</span></span><span><span class="k">Back</span><span data-i="g_back">Home screen</span></span></div>
+      </section>
+
+      <!-- PLAYER -->
+      <section class="screen player" id="s-player" hidden>
+        <svg class="art" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true"><circle cx="1400" cy="380" r="260" fill="#fff" opacity=".12"/><path d="M0 760 C300 620 600 820 960 700 S1600 560 1920 680 V1080 H0Z" fill="#fff" opacity=".18"/><path d="M0 860 C400 780 700 900 1100 820 S1700 760 1920 820 V1080 H0Z" fill="#fff" opacity=".22"/></svg>
+        <div class="shade"></div>
+        <div class="ptopbar"><span class="live-tag" data-i="live">LIVE</span><div class="clock">21:42</div></div>
+        <div class="osd">
+          <div class="logo" id="oLogo"></div>
+          <div>
+            <div class="num" id="oNum"></div>
+            <h2 id="oTitle"></h2>
+            <div class="prow"><span id="oStart"></span><div class="bar"><i id="oBar"></i></div><span id="oEnd"></span></div>
+            <div class="next"><span data-i="next">Next</span>: <b id="oNext"></b></div>
+          </div>
+          <div class="ptop"><div class="phint"><span><span class="k">↑↓</span><span data-i="g_ch">Channel</span></span><span><span class="k">OK</span><span data-i="p_guide">Guide</span></span><span><span class="k">Back</span><span data-i="g_back">Home screen</span></span></div></div>
+        </div>
+      </section>
+
+      <!-- ADMIN -->
+      <section class="screen admin" id="s-admin" hidden style="zoom:1.45">
+        <aside class="side">
+          <div class="brandrow"><svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><g fill="#F5A524"><circle cx="14" cy="14" r="3.4"/><circle cx="23" cy="9" r="3.4"/><circle cx="32" cy="7.5" r="3.4"/><circle cx="41" cy="9" r="3.4"/><circle cx="50" cy="14" r="3.4"/></g><rect x="8" y="22" width="48" height="34" rx="7" fill="none" stroke="#F5A524" stroke-width="4"/><path d="M28 31v16l13-8z" fill="#FF6B5A"/></svg>Marquee</div>
+          <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span data-i="a_dash">Dashboard</span></div>
+          <div class="nav on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span data-i="t_home">Home screen</span></div>
+          <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="3"/><path d="M8 2l4 5 4-5"/></svg><span data-i="livetv">Live TV</span></div>
+          <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span data-i="a_upd">Updates</span></div>
+          <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span data-i="a_logs">Logs</span></div>
+          <div class="nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg><span data-i="power">Power</span></div>
+          <div class="ver">Marquee 0.4.0 · test</div>
+        </aside>
+        <main>
+          <div><h1 data-i="t_home">Home screen</h1><p class="lead" data-i="a_lead">Choose which apps appear on the TV and in which order.</p></div>
+          <div class="acols">
+            <div class="card">
+              <h3 data-i="a_tiles">Apps on the home screen</h3>
+              <p class="desc" data-i="a_drag">Drag to change the order. Switched-off apps are hidden on the TV.</p>
+              <div class="tile-row"><span class="drag">⋮⋮</span><span class="ico" style="background:#2b230f"><svg width="22" height="22" viewBox="0 0 48 48"><path d="M14 6h12l12 18-12 18H14l12-18z" fill="#E5A00D"/></svg></span><span><b>Plex</b><small data-i="a_inst">Installed · 1.69</small></small></span><span class="status ok" data-i="a_ready">Ready</span><button class="toggle" role="switch" aria-checked="true" aria-label="Plex"></button></div>
+              <div class="tile-row"><span class="drag">⋮⋮</span><span class="ico" style="background:#231a3d"><svg width="22" height="22" viewBox="0 0 48 48"><path d="M24 6C17 6 5 28 8 34s29 6 32 0S31 6 24 6zm0 12c3 0 9 11 7.5 14s-13.5 3-15 0S21 18 24 18z" fill="#9B7BF0"/></svg></span><span><b>Jellyfin</b><small data-i="a_jinst">Installs on first use (about 300 MB)</small></span><span class="status warn" data-i="a_notyet">Not installed</span><button class="toggle" role="switch" aria-checked="true" aria-label="Jellyfin"></button></div>
+              <div class="tile-row"><span class="drag">⋮⋮</span><span class="ico" style="background:#3a1a18"><svg width="22" height="22" viewBox="0 0 48 48" fill="none" stroke="#FF6B5A" stroke-width="4" stroke-linecap="round"><rect x="6" y="14" width="36" height="25" rx="5"/><path d="M17 6l7 8 7-8"/></svg></span><span><b data-i="livetv">Live TV</b><small data-i="a_lsub">Marquee TV · 9 channels</small></span><span class="status ok" data-i="a_ready">Ready</span><button class="toggle" role="switch" aria-checked="true" aria-label="Live TV"></button></div>
+              <div class="tile-row"><span class="drag">⋮⋮</span><span class="ico" style="background:var(--border)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8EAED" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span><span><b data-i="onnow">On now</b><small data-i="a_rowsub">Row with live channels under the apps</small></span><span></span><button class="toggle" role="switch" aria-checked="true" aria-label="On now"></button></div>
+            </div>
+            <div class="card">
+              <h3 data-i="a_start">When the TV starts</h3>
+              <div class="seg"><span class="on" data-i="a_s_home">Show home screen</span><span data-i="a_s_last">Last used app</span><span>Plex</span></div>
+              <h3 style="margin-top:6px" data-i="a_src">Live TV source</h3>
+              <div class="seg"><span class="on" data-i="a_m3u">M3U playlist</span><span>Xtream Codes</span></div>
+              <div class="field"><label data-i="a_purl">Playlist URL</label><input class="input mono" value="http://192.168.1.20:8000/playlist.m3u" aria-label="Playlist URL"></div>
+              <div class="field"><label data-i="a_epg">TV guide (XMLTV) URL</label><input class="input mono" value="http://192.168.1.20:8000/epg.xml.gz" aria-label="EPG URL"></div>
+              <div class="two">
+                <div class="field"><label data-i="a_jserver">Jellyfin server (optional)</label><input class="input mono" value="http://192.168.1.20:8096" aria-label="Jellyfin server"></div>
+                <div class="field"><label data-i="a_refresh">Refresh guide</label><select class="select" aria-label="Refresh"><option data-i="a_every">Every 12 hours</option></select></div>
+              </div>
+              <div class="btns"><button class="btn primary" data-i="a_save">Save</button><button class="btn" data-i="a_test">Test source</button></div>
+              <div class="okline" data-i="a_ok">✓ 9 channels found · guide has 2,140 programmes</div>
+            </div>
+          </div>
+        </main>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+const T = {
+  en: {},
+  nl: {
+    proto: "Prototype startscherm", t_home: "Startscherm", t_guide: "Tv-gids", t_player: "Tv kijken", t_admin: "Webbeheer",
+    howto: 'Klik op de tv en gebruik <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> als afstandsbediening. <kbd>Enter</kbd> = OK, <kbd>Esc</kbd> = Terug. Je kunt ook op tegels klikken. Zenders en programma’s zijn voorbeelddata.',
+    online: "Online", date: "Zaterdag 21 november", greet: "Goedenavond", ask: "Waar wil je naar kijken?",
+    plex_sub: "Films en series van je Plex-server", jelly_sub: "Je eigen mediabibliotheek", live: "Live", livetv: "Live tv",
+    live_sub: "9 zenders · gids is bijgewerkt", onnow: "Nu op tv", onnow_sub: "Live tv · OK om te kijken",
+    settings: "Instellingen", power: "Aan/uit", h_open: "Openen", h_home: "Met de Home-knop kom je altijd hier terug",
+    g_ch: "Zender", g_time: "Eerder / later", g_watch: "Kijken", g_back: "Startscherm", next: "Hierna", p_guide: "Gids",
+    a_dash: "Dashboard", a_upd: "Updates", a_logs: "Logboek", a_lead: "Kies welke apps op de tv staan en in welke volgorde.",
+    a_tiles: "Apps op het startscherm", a_drag: "Sleep om de volgorde te wijzigen. Uitgeschakelde apps zijn verborgen op de tv.",
+    a_inst: "Geïnstalleerd · 1.69", a_ready: "Klaar", a_jinst: "Wordt geïnstalleerd bij eerste gebruik (ca. 300 MB)", a_notyet: "Niet geïnstalleerd",
+    a_lsub: "Marquee TV · 9 zenders", a_rowsub: "Rij met live zenders onder de apps", a_start: "Als de tv opstart",
+    a_s_home: "Startscherm tonen", a_s_last: "Laatst gebruikte app", a_src: "Bron voor live tv", a_m3u: "M3U-afspeellijst",
+    a_purl: "URL afspeellijst", a_epg: "URL tv-gids (XMLTV)", a_jserver: "Jellyfin-server (optioneel)", a_refresh: "Gids verversen",
+    a_every: "Elke 12 uur", a_save: "Opslaan", a_test: "Bron testen", a_ok: "✓ 9 zenders gevonden · gids bevat 2.140 programma’s"
+  }
+};
+document.querySelectorAll("[data-i]").forEach(el => T.en[el.dataset.i] = el.dataset.html !== undefined ? el.innerHTML : el.textContent);
+let lang = "en";
+function setLang(l) {
+  lang = l;
+  document.documentElement.lang = l;
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === l));
+  document.querySelectorAll("[data-i]").forEach(el => { const v = T[l][el.dataset.i] ?? T.en[el.dataset.i]; if (el.dataset.html !== undefined) el.innerHTML = v; else el.textContent = v; });
+  renderGuideDetail(); renderPlayer();
+}
+
+/* sample data */
+const CH = [
+  { n: 1, name: "Lowland One", c: "#2F6FDE", p: [[0,40,"Evening News","News"],[40,50,"The Quiz Hour","Entertainment"],[90,60,"Inside Story","Documentary"]] },
+  { n: 2, name: "Lowland Two", c: "#E0435B", p: [[0,60,"Garden Makeover","Lifestyle"],[60,75,"Harbour Lights","Drama"],[135,30,"Late Talk","Talk show"]] },
+  { n: 3, name: "Canal 3", c: "#1FA37A", p: [[0,30,"Weather","News"],[30,90,"Cold Case Files","Crime"],[120,60,"Night Market","Food"]] },
+  { n: 4, name: "Studio 24 News", c: "#C2411C", p: [[0,30,"News at Nine","News"],[30,30,"Markets Today","Business"],[60,30,"News at Ten","News"],[90,60,"World Report","News"]] },
+  { n: 5, name: "Arena Sport", c: "#7A3FD1", p: [[0,105,"Football: Rotterdam v Utrecht","Sport"],[105,45,"Match of the Week","Sport"]] },
+  { n: 6, name: "Docu Planet", c: "#0E8FA8", p: [[0,55,"Deep Ocean","Nature"],[55,60,"Wild North","Nature"],[115,40,"Space Stations","Science"]] },
+  { n: 7, name: "Kids Club", c: "#E8A10F", p: [[0,45,"Robot Rangers","Kids"],[45,45,"Bedtime Tales","Kids"],[90,60,"Kids Club Classics","Kids"]] },
+  { n: 8, name: "Cine Classic", c: "#8B5A2B", p: [[0,120,"The Long Summer (1984)","Film"],[120,30,"Trailer Park","Film"]] },
+  { n: 9, name: "Music Box", c: "#D63384", p: [[0,60,"Top 40","Music"],[60,90,"Live at the Paradiso","Music"]] },
+];
+const DESC = { News: "The latest national and international news, sport and weather.", Sport: "Live coverage with analysis before and after the match.", Nature: "A journey through some of the least explored places on Earth.", Film: "A restored classic about one long, hot summer in a small coastal town.", Drama: "The harbour town faces a storm that changes everything.", Kids: "Cartoons and stories for children aged 4 to 8.", Lifestyle: "Two designers turn a neglected back garden into an outdoor room.", Crime: "Detectives reopen a case that went cold twenty years ago.", Music: "The biggest songs of the week, counted down.", default: "Tonight on this channel." };
+const NOW = 42; // minutes after 21:00
+const fmt = m => { const t = 21 * 60 + m; return String(Math.floor(t / 60) % 24).padStart(2, "0") + ":" + String(t % 60).padStart(2, "0"); };
+const ini = s => s.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+const logo = ch => `<span class="logo" style="background:${ch.c}">${ini(ch.name)}</span>`;
+const nowProg = ch => ch.p.find(p => NOW >= p[0] && NOW < p[0] + p[1]);
+const grad = ch => `linear-gradient(135deg, ${ch.c} 0%, #141820 85%)`;
+
+/* home: on now row */
+document.getElementById("homeChans").innerHTML = CH.slice(0, 5).map((ch, i) => {
+  const p = nowProg(ch), pct = Math.round((NOW - p[0]) / p[1] * 100);
+  return `<div class="chan f" data-go="watch" data-ch="${i}"><div class="ch-top">${logo(ch)}<div><div class="num">${ch.n}</div><div class="cname">${ch.name}</div></div></div><div class="prog">${p[2]}</div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+}).join("");
+
+/* guide grid */
+const PX = 10; // px per minute (300px per 30 min)
+document.getElementById("grows").innerHTML = CH.map((ch, r) => `<div class="grow"><div class="gch"><span class="num">${ch.n}</span>${logo(ch)}<span class="cname">${ch.name}</span></div><div class="gprogs">${ch.p.map((p, k) => `<div class="gp${NOW >= p[0] && NOW < p[0] + p[1] ? " now" : ""}" data-r="${r}" data-k="${k}" style="left:${p[0] * PX + 4}px;width:${Math.min(p[1], 150 - p[0]) * PX - 8}px"><span class="t">${p[2]}</span><span class="s">${fmt(p[0])}–${fmt(p[0] + p[1])}</span></div>`).join("")}</div></div>`).join("");
+const nl = document.querySelector(".nowline"); nl.style.left = (330 + NOW * PX) + "px"; nl.style.display = "";
+
+/* state */
+let screen = "home", focusRow = 0, focusIdx = 0, gR = 0, gK = 0, curCh = 0;
+const stage = document.getElementById("stage"), tv = document.getElementById("tv");
+function fit() { stage.style.transform = `scale(${tv.clientWidth / 1920})`; }
+new ResizeObserver(fit).observe(tv); fit();
+
+function rows() { return [...document.querySelectorAll("#s-home [data-row]")].map(r => [...r.querySelectorAll(".f")]); }
+function paintHome() { document.querySelectorAll("#s-home .f").forEach(e => e.classList.remove("f-on")); const r = rows(); r[focusRow][focusIdx]?.classList.add("f-on"); }
+function paintGuide() {
+  document.querySelectorAll(".gp").forEach(e => e.classList.toggle("f-on", +e.dataset.r === gR && +e.dataset.k === gK));
+  renderGuideDetail();
+}
+function renderGuideDetail() {
+  const ch = CH[gR], p = ch.p[gK];
+  document.getElementById("pv").style.setProperty("--pv", grad(ch));
+  document.getElementById("pvlabel").textContent = `${ch.n} · ${ch.name}`;
+  document.getElementById("dWhen").textContent = `${fmt(p[0])} – ${fmt(p[0] + p[1])}`;
+  document.getElementById("dTitle").textContent = p[2];
+  document.getElementById("dMeta").innerHTML = `<span class="chip">${p[3]}</span><span class="chip">${p[1]} min</span><span class="chip">HD</span>`;
+  document.getElementById("dDesc").textContent = lang === "nl" ? "Voorbeeldbeschrijving uit de tv-gids (XMLTV)." : (DESC[p[3]] || DESC.default);
+}
+function renderPlayer() {
+  const ch = CH[curCh], p = nowProg(ch), nx = ch.p[ch.p.indexOf(p) + 1];
+  document.getElementById("s-player").style.setProperty("--pv", grad(ch));
+  document.getElementById("oLogo").outerHTML = `<div class="logo" id="oLogo" style="background:${ch.c}">${ini(ch.name)}</div>`;
+  document.getElementById("oNum").textContent = `${ch.n} · ${ch.name}`;
+  document.getElementById("oTitle").textContent = p[2];
+  document.getElementById("oStart").textContent = fmt(p[0]); document.getElementById("oEnd").textContent = fmt(p[0] + p[1]);
+  document.getElementById("oBar").style.width = Math.round((NOW - p[0]) / p[1] * 100) + "%";
+  document.getElementById("oNext").textContent = nx ? `${fmt(nx[0])} ${nx[2]}` : "—";
+}
+function show(s) {
+  screen = s;
+  ["home", "guide", "player", "admin"].forEach(id => document.getElementById("s-" + id).hidden = id !== s);
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.s === s));
+  if (s === "home") paintHome();
+  if (s === "guide") { const i = CH[gR].p.indexOf(nowProg(CH[gR])); if (gK >= CH[gR].p.length) gK = i; paintGuide(); }
+  if (s === "player") renderPlayer();
+}
+function activate(el) {
+  const g = el.dataset.go;
+  if (g === "guide") { gR = 0; gK = CH[0].p.indexOf(nowProg(CH[0])); show("guide"); }
+  else if (g === "watch") { curCh = +el.dataset.ch; show("player"); }
+  else flash(el);
+}
+function flash(el) { el.animate([{ filter: "brightness(1.6)" }, { filter: "brightness(1)" }], { duration: 350 }); }
+function nearest(list, x) { let best = 0, d = 1e9; list.forEach((e, i) => { const r = e.getBoundingClientRect(), c = Math.abs(r.left + r.width / 2 - x); if (c < d) { d = c; best = i; } }); return best; }
+
+tv.addEventListener("keydown", e => {
+  const k = e.key;
+  if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape", "Backspace"].includes(k)) return;
+  e.preventDefault();
+  if (screen === "home") {
+    const r = rows(), cur = r[focusRow][focusIdx];
+    if (k === "ArrowLeft") focusIdx = Math.max(0, focusIdx - 1);
+    if (k === "ArrowRight") focusIdx = Math.min(r[focusRow].length - 1, focusIdx + 1);
+    if (k === "ArrowUp" || k === "ArrowDown") {
+      const nr = Math.max(0, Math.min(r.length - 1, focusRow + (k === "ArrowUp" ? -1 : 1)));
+      if (nr !== focusRow) { const b = cur.getBoundingClientRect(); focusRow = nr; focusIdx = nearest(r[nr], b.left + b.width / 2); }
+    }
+    if (k === "Enter") activate(r[focusRow][focusIdx]);
+    paintHome();
+  } else if (screen === "guide") {
+    if (k === "ArrowUp" || k === "ArrowDown") {
+      const p = CH[gR].p[gK], mid = Math.max(p[0], NOW);
+      gR = Math.max(0, Math.min(CH.length - 1, gR + (k === "ArrowUp" ? -1 : 1)));
+      gK = CH[gR].p.findIndex(q => mid >= q[0] && mid < q[0] + q[1]); if (gK < 0) gK = 0;
+    }
+    if (k === "ArrowLeft") gK = Math.max(0, gK - 1);
+    if (k === "ArrowRight") gK = Math.min(CH[gR].p.length - 1, gK + 1);
+    if (k === "Enter") { curCh = gR; show("player"); return; }
+    if (k === "Escape" || k === "Backspace") { show("home"); return; }
+    paintGuide();
+  } else if (screen === "player") {
+    if (k === "ArrowUp") curCh = (curCh + CH.length - 1) % CH.length;
+    if (k === "ArrowDown") curCh = (curCh + 1) % CH.length;
+    if (k === "Enter") { gR = curCh; gK = CH[gR].p.indexOf(nowProg(CH[gR])); show("guide"); return; }
+    if (k === "Escape" || k === "Backspace") { show("home"); return; }
+    renderPlayer();
+  }
+});
+tv.addEventListener("click", e => {
+  tv.focus();
+  const f = e.target.closest("#s-home .f");
+  if (f) { const r = rows(); r.forEach((row, ri) => { const i = row.indexOf(f); if (i >= 0) { focusRow = ri; focusIdx = i; } }); paintHome(); activate(f); }
+  const g = e.target.closest(".gp");
+  if (g) { if (+g.dataset.r === gR && +g.dataset.k === gK) { curCh = gR; show("player"); } else { gR = +g.dataset.r; gK = +g.dataset.k; paintGuide(); } }
+  if (e.target.closest("#s-player")) { show("guide"); }
+  const t = e.target.closest(".toggle"); if (t) t.setAttribute("aria-checked", t.getAttribute("aria-checked") !== "true");
+});
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => { show(b.dataset.s); if (b.dataset.s !== "admin") tv.focus(); });
+document.querySelectorAll(".lang button").forEach(b => b.onclick = () => setLang(b.dataset.l));
+show("home");
+</script>
