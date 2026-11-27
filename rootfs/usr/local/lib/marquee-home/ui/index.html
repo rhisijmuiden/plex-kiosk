@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Marquee Home</title>
+  <link rel="stylesheet" href="home.css">
+</head>
+<body>
+  <div class="stage" id="stage">
+    <section class="home" id="home">
+      <header class="hbar">
+        <div class="hlogo">
+          <svg width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><g fill="#F5A524"><circle cx="14" cy="14" r="3.4"/><circle cx="23" cy="9" r="3.4"/><circle cx="32" cy="7.5" r="3.4"/><circle cx="41" cy="9" r="3.4"/><circle cx="50" cy="14" r="3.4"/></g><rect x="8" y="22" width="48" height="34" rx="7" fill="none" stroke="#F5A524" stroke-width="4"/><path d="M28 31v16l13-8z" fill="#FF6B5A"/></svg>
+          Marquee
+        </div>
+        <div class="hright">
+          <div class="net" id="net"><span class="dot"></span><span id="net-label"></span></div>
+          <div id="date"></div>
+          <div class="clock" id="clock"></div>
+        </div>
+      </header>
+
+      <div class="greet">
+        <h1 id="greet"></h1>
+        <p data-i="ask"></p>
+      </div>
+
+      <div class="apps" id="apps" data-row></div>
+      <p class="empty" id="no-apps" hidden data-i="no_apps"></p>
+
+      <footer class="hfoot">
+        <div class="sys" data-row>
+          <button class="pill f" data-go="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span data-i="settings"></span></button>
+          <button class="pill f" data-go="info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Info</span></button>
+          <button class="pill f" data-go="power"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg><span data-i="power"></span></button>
+        </div>
+        <div class="hint"><span><span class="k">OK</span><span data-i="h_open"></span></span><span><span class="k" id="home-key-label">⊞</span><span data-i="h_home"></span></span></div>
+      </footer>
+    </section>
+
+    <!-- Panels (Settings / Info / Power) -->
+    <div class="scrim" id="scrim" hidden>
+      <section class="panel" id="panel-settings" hidden>
+        <h2 data-i="settings"></h2>
+        <p data-i="settings_body"></p>
+        <div class="url" id="admin-url"></div>
+        <div class="row" data-row><button class="btn f primary" data-go="close" data-i="close"></button></div>
+      </section>
+      <section class="panel" id="panel-info" hidden>
+        <h2>Marquee</h2>
+        <dl class="kv">
+          <dt data-i="i_version"></dt><dd class="mono" id="i-version"></dd>
+          <dt data-i="i_channel"></dt><dd id="i-channel"></dd>
+          <dt data-i="i_name"></dt><dd id="i-host"></dd>
+          <dt data-i="i_ip"></dt><dd class="mono" id="i-ip"></dd>
+        </dl>
+        <p class="status" id="check-status"></p>
+        <div class="row" data-row>
+          <button class="btn f primary" data-go="check" data-i="check"></button>
+          <button class="btn f" data-go="close" data-i="close"></button>
+        </div>
+      </section>
+      <section class="panel" id="panel-power" hidden>
+        <h2 data-i="power_title"></h2>
+        <p data-i="power_body"></p>
+        <div class="row" data-row>
+          <button class="btn f" data-go="reboot" data-i="reboot"></button>
+          <button class="btn f danger" data-go="poweroff" data-i="poweroff"></button>
+          <button class="btn f" data-go="close" data-i="cancel"></button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Shown while an app opens (the app's window covers it) -->
+    <div class="opening" id="opening" hidden>
+      <div class="glyph" id="opening-glyph"></div>
+      <h2 id="opening-title"></h2>
+      <div class="spinner"></div>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+  </div>
+  <script src="home.js"></script>
+</body>
+</html>

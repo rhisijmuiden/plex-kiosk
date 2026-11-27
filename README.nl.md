@@ -71,6 +71,21 @@ sudo reboot
 Plex HTPC vraagt één keer om in te loggen (het toont een code die je invult op
 <https://plex.tv/link>). Daarna onthoudt het je account.
 
+## Startscherm
+
+Sinds 0.4.0 start de tv in het Marquee-startscherm. Daar kies je een app met de
+pijltjes en OK (of met de muis). Jellyfin (0.5.0) en Live tv (0.6.0) volgen;
+voorlopig is Plex de enige app.
+
+- **Terug naar het startscherm** vanuit elke app: druk op de Windows-toets, de
+  Home-knop van een afstandsbediening of mediatoetsenbord, of houd Esc twee
+  seconden ingedrukt.
+- **Instellingen / Info / Aan/uit** op het startscherm: het adres van het
+  webbeheer, versie en updatecontrole, herstarten of uitzetten.
+- In het webbeheer onder *Startscherm* kies je de apps, de volgorde en wat er
+  opent als de tv start (startscherm, laatst gebruikte app of Plex). Zet het
+  startscherm uit voor het oude gedrag: direct naar Plex.
+
 ## Webbeheer
 
 Open `http://<ip-van-apparaat>:8080` (of `http://plex-kiosk.local:8080`) en log

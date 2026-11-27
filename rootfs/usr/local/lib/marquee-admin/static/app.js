@@ -18,7 +18,7 @@
     if (state.page) setTitle(state.page);
     if (state.status) renderStatus(state.status);
     if (state.updates) renderUpdates(state.updates);
-    if (state.settings) renderSettings(state.settings);
+    if (state.settings) { renderSettings(state.settings); renderHome(state.settings); }
   }
   $$(".lang-switch button").forEach(b => b.addEventListener("click", () => {
     lang = b.dataset.lang;
@@ -75,7 +75,7 @@
   $("#logout").addEventListener("click", async () => { await api("/api/logout", {}).catch(() => {}); showLogin(); });
 
   // ---------- routing ----------
-  const titles = { dashboard: "nav.dashboard", updates: "nav.updates", channel: "nav.channel", logs: "nav.logs", power: "nav.power" };
+  const titles = { dashboard: "nav.dashboard", home: "nav.home", updates: "nav.updates", channel: "nav.channel", logs: "nav.logs", power: "nav.power" };
   function setTitle(page) { $("#page-title").textContent = t(titles[page]); document.title = `${t(titles[page])} · Marquee`; }
   function route() {
     const page = titles[location.hash.slice(1)] ? location.hash.slice(1) : "dashboard";
@@ -86,6 +86,7 @@
     $("#sidebar").classList.remove("open");
     if (page === "logs") loadLogs();
     if (page === "updates") { loadJobs(); loadSettings(); }
+    if (page === "home") loadSettings();
     if (page === "dashboard" || page === "channel") refreshStatus();
   }
   window.addEventListener("hashchange", route);
@@ -166,7 +167,7 @@
 
   // ---------- automatic check ----------
   const fmtTime = ts => new Date(ts * 1000).toLocaleString(lang === "nl" ? "nl-NL" : "en-GB", { dateStyle: "medium", timeStyle: "short" });
-  async function loadSettings() { try { state.settings = await api("/api/settings"); renderSettings(state.settings); } catch (_) {} }
+  async function loadSettings() { try { state.settings = await api("/api/settings"); renderSettings(state.settings); renderHome(state.settings); } catch (_) {} }
   function renderSettings(s) {
     const f = $("#auto-form"), sel = $("#auto-hours"), current = String(s.check_hours);
     const opts = [...new Set([...s.hours_options, s.check_hours])].sort((a, b) => a - b);
@@ -196,6 +197,54 @@
     const btn = e.currentTarget; btn.disabled = true;
     try { await api("/api/popup/show", {}); toast(t("auto.shown")); }
     catch (ex) { toast(t({ popup_open: "auto.err_open", job_running: "auto.err_job", no_kiosk: "auto.err_kiosk" }[ex.message] || "toast.error")); }
+    finally { btn.disabled = false; }
+  });
+
+  // ---------- home screen ----------
+  const home = { apps: [], start: "home" };
+  const APP_ICON = {
+    plex: '<svg viewBox="0 0 48 48"><path d="M14 6h12l12 18-12 18H14l12-18z" fill="#E5A00D"/></svg>',
+    jellyfin: '<svg viewBox="0 0 48 48"><path d="M24 6C17 6 5 28 8 34s29 6 32 0S31 6 24 6zm0 12c3 0 9 11 7.5 14s-13.5 3-15 0S21 18 24 18z" fill="#9B7BF0"/></svg>',
+    livetv: '<svg viewBox="0 0 48 48" fill="none" stroke="#FF6B5A" stroke-width="4" stroke-linecap="round"><rect x="6" y="14" width="36" height="25" rx="5"/><path d="M17 6l7 8 7-8"/></svg>',
+  };
+  function renderHome(s, keepEdits) {
+    if (!s) return;
+    if (!keepEdits) { home.apps = s.home_apps.map(a => ({ ...a })); home.start = s.home_start; $("#home-screen").checked = s.home_screen; }
+    const ul = $("#home-apps"); ul.innerHTML = "";
+    home.apps.forEach((a, i) => {
+      const li = document.createElement("li");
+      li.className = a.available ? "" : "soon";
+      li.innerHTML = `<span class="app-ico">${APP_ICON[a.id] || ""}</span>
+        <span class="app-name"><strong></strong><span class="muted"></span></span>
+        <span class="order"><button class="icon-btn" data-dir="-1"><svg viewBox="0 0 24 24"><path d="m12 8-6 6 1.4 1.4L12 10.8l4.6 4.6L18 14z"/></svg></button><button class="icon-btn" data-dir="1"><svg viewBox="0 0 24 24"><path d="m12 16 6-6-1.4-1.4-4.6 4.6-4.6-4.6L6 10z"/></svg></button></span>
+        <label class="switch"><input type="checkbox"><i></i></label>`;
+      $("strong", li).textContent = a.id === "livetv" ? t("home.livetv") : a.name;
+      $(".app-name .muted", li).textContent = a.available ? t(a.enabled ? "home.shown" : "home.hidden") : t("home.soon", { v: a.since });
+      const [up, down] = $$(".order button", li);
+      up.setAttribute("aria-label", t("home.up")); down.setAttribute("aria-label", t("home.down"));
+      up.disabled = i === 0; down.disabled = i === home.apps.length - 1;
+      const box = $("input", li); box.checked = a.enabled; box.disabled = !a.available;
+      box.setAttribute("aria-label", a.name);
+      box.addEventListener("change", () => { a.enabled = box.checked; renderHome(s, true); });
+      [up, down].forEach(b => b.addEventListener("click", () => {
+        const j = i + Number(b.dataset.dir); [home.apps[i], home.apps[j]] = [home.apps[j], home.apps[i]]; renderHome(s, true);
+      }));
+      ul.appendChild(li);
+    });
+    $$("#home-start button").forEach(b => {
+      const on = b.dataset.start === home.start; b.classList.toggle("active", on); b.setAttribute("aria-checked", on);
+    });
+  }
+  $$("#home-start button").forEach(b => b.addEventListener("click", () => { home.start = b.dataset.start; renderHome(state.settings, true); }));
+  $("#home-save").addEventListener("click", async e => {
+    const btn = e.currentTarget, useHome = $("#home-screen").checked;
+    if (state.settings && useHome !== state.settings.home_screen && !(await confirmBox(t("home.confirm_restart")))) return;
+    btn.disabled = true;
+    try {
+      state.settings = await api("/api/settings", {
+        home_apps: home.apps.filter(a => a.enabled).map(a => a.id), home_start: home.start, home_screen: useHome });
+      renderHome(state.settings); toast(t("home.saved"));
+    } catch (_) { toast(t("toast.error")); }
     finally { btn.disabled = false; }
   });
 

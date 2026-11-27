@@ -19,7 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y shellcheck
       - run: shellcheck install.sh iso/build-iso.sh rootfs/usr/local/sbin/* rootfs/usr/local/bin/*
-      - run: python3 -m py_compile rootfs/usr/local/lib/marquee-admin/*.py
+      - run: python3 -m py_compile rootfs/usr/local/lib/marquee-admin/*.py rootfs/usr/local/lib/marquee-home/*.py
+      - run: for f in rootfs/usr/local/lib/marquee-admin/static/*.js rootfs/usr/local/lib/marquee-home/ui/*.js; do node --check "$f"; done
 
   install-test:
     # Runs install.sh in a clean Debian 13 container, like the installer's late_command (no systemd running).
@@ -45,6 +46,31 @@ jobs:
           grep -qx 'CapabilityBoundingSet=' /etc/systemd/system/plex-kiosk.service
           grep -qx 'UPDATE_CHECK_HOURS=6' /etc/plex-kiosk/plex-kiosk.conf
           python3 -c "import gi; gi.require_version('Gtk', '4.0'); from gi.repository import Gtk"
+          python3 -c "import gi; gi.require_version('WebKit', '6.0'); from gi.repository import WebKit; import evdev"
+          test -x /usr/local/bin/marquee-session
+          grep -q 'ExecStart=/usr/bin/cage -d -s -- /usr/local/bin/marquee-session' /etc/systemd/system/plex-kiosk.service
+          grep -qx 'HOME_SCREEN=yes' /etc/plex-kiosk/plex-kiosk.conf
+      - name: Screenshot of the home screen (headless cage)
+        continue-on-error: true
+        run: |
+          apt-get install -y --no-install-recommends grim dbus-daemon dbus-user-session mesa-utils libgl1-mesa-dri
+          export XDG_RUNTIME_DIR=/tmp/xdg; mkdir -p -m 0700 $XDG_RUNTIME_DIR
+          cat > /tmp/shot.sh <<'EOS'
+          export GDK_BACKEND=wayland WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 NO_AT_BRIDGE=1
+          python3 /usr/local/lib/marquee-home/launcher.py &
+          sleep 20
+          grim /tmp/home-screen.png
+          kill %1
+          EOS
+          WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 \
+            timeout 60 dbus-run-session -- cage -- sh /tmp/shot.sh || true
+          ls -l /tmp/home-screen.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: home-screen
+          path: /tmp/home-screen.png
+          if-no-files-found: ignore
 
   iso:
     needs: lint

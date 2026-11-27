@@ -33,6 +33,7 @@
       <div class="brand"><img src="/static/brand/logo-dark.svg" alt="Marquee"></div>
       <nav>
         <a href="#dashboard" data-page="dashboard"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z"/></svg><span data-i18n="nav.dashboard">Dashboard</span></a>
+        <a href="#home" data-page="home"><svg viewBox="0 0 24 24"><path d="M12 3 2 11h3v9h6v-6h2v6h6v-9h3z"/></svg><span data-i18n="nav.home">Home screen</span></a>
         <a href="#updates" data-page="updates"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg><span data-i18n="nav.updates">Updates</span><i class="dot" id="update-dot" hidden></i></a>
         <a href="#channel" data-page="channel"><svg viewBox="0 0 24 24"><path d="M6 3a3 3 0 0 0-1 5.83v6.34A3 3 0 1 0 7 15.2V13a2 2 0 0 1 2-2h6a4 4 0 0 0 4-4v-.17a3 3 0 1 0-2 0V7a2 2 0 0 1-2 2H9a4 4 0 0 0-2 .54V8.83A3 3 0 0 0 6 3z"/></svg><span data-i18n="nav.channel">Production / Test</span></a>
         <a href="#logs" data-page="logs"><svg viewBox="0 0 24 24"><path d="M4 4h16v2H4zm0 5h16v2H4zm0 5h10v2H4zm0 5h16v2H4z"/></svg><span data-i18n="nav.logs">Logs</span></a>
@@ -79,6 +80,26 @@
             <dt data-i18n="dash.restarts">Plex restarts since boot</dt><dd id="restarts">-</dd>
             <dt data-i18n="dash.load">Load</dt><dd id="load">-</dd>
           </dl>
+        </div>
+      </section>
+
+      <!-- Home screen -->
+      <section class="page" id="page-home" hidden>
+        <div class="card">
+          <h3 data-i18n="home.apps">Apps on the home screen</h3>
+          <p class="muted" data-i18n="home.apps_hint">Switch apps on or off and use the arrows to change the order on the TV.</p>
+          <ul class="app-list" id="home-apps"></ul>
+        </div>
+        <div class="card">
+          <h3 data-i18n="home.start">When the TV starts</h3>
+          <div class="seg" id="home-start" role="radiogroup">
+            <button type="button" role="radio" data-start="home" data-i18n="home.start_home">Show home screen</button>
+            <button type="button" role="radio" data-start="last" data-i18n="home.start_last">Last used app</button>
+            <button type="button" role="radio" data-start="plex">Plex</button>
+          </div>
+          <label class="switch home-switch"><input type="checkbox" id="home-screen"><i></i><span data-i18n="home.use">Use the home screen (off: the TV opens Plex only, as before)</span></label>
+          <p class="muted" data-i18n="home.keys">Back to the home screen from any app: press the Windows key, the Home key on a remote, or hold Esc for two seconds.</p>
+          <div class="row-end"><button class="btn primary" id="home-save" data-i18n="auto.save">Save</button></div>
         </div>
       </section>
 

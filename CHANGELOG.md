@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 - 2026-11-22
+- New TV home screen: the TV now starts in a Marquee start page with big tiles
+  to choose an app (Plex for now; Jellyfin and Live TV follow in 0.5.0 and
+  0.6.0). Works with arrow keys + OK, remotes that send keyboard keys, and the
+  mouse. English and Dutch (follows the TV language setting).
+- Back to the home screen from any app with the Windows key, a remote's Home
+  key, or by holding Esc for two seconds.
+- Settings, Info (version + update check) and Power (restart / turn off) on
+  the TV.
+- Web admin: new *Home screen* page to choose the apps and their order, what
+  opens at start (home screen, last used app or Plex), or switch the home
+  screen off to go straight into Plex like before.
+- If the home screen can't start, the TV opens Plex directly so it keeps working.
+
 ## 0.3.0 - 2026-11-21
 - Automatic update check: every 6 hours by default (1-48 hours or off, set on
   the admin's Updates page). Follows the selected channel (Production / Test).
