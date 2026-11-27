@@ -68,7 +68,7 @@ kiosk_home() { getent passwd "${KIOSK_USER:-kiosk}" | cut -d: -f6; }
 noflix_dir() { echo "$(kiosk_home)/.local/share/noflix"; }
 
 install_noflix() {
-  local server="${NOFLIX_SERVER%/}" dir home tmp sum p
+  local server="${NOFLIX_SERVER%/}" dir home sum p
   [[ -n "$server" ]] || { echo "Enter the NO-Flix server address on the Home screen page first."; exit 2; }
   [[ "$server" =~ ^https?:// ]] || server="http://$server"
   home="$(kiosk_home)"; dir="$(noflix_dir)"
@@ -83,8 +83,10 @@ install_noflix() {
   apt-get install -y --no-install-recommends "${want[@]}"
 
   echo "== Downloading NO-Flix for Linux from $server"
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
+  # Global (not local): the EXIT trap runs after this function has returned.
+  NOFLIX_TMP="$(mktemp -d)"
+  trap 'rm -rf "${NOFLIX_TMP:-/nonexistent}"' EXIT
+  local tmp="$NOFLIX_TMP"
   if ! curl -fSL --retry 2 --connect-timeout 10 -o "$tmp/noflix.tar.gz" "$server/api/clients/download/linux"; then
     echo "Download failed. Check the address, that the server is on, and that public downloads are"
     echo "switched on in the NO-Flix admin (Apps page)."
@@ -124,7 +126,7 @@ install_noflix() {
 }
 
 noflix_version() {
-  sed -n 's/.*"version":"\([^"]*\)".*/\1/p' "$(noflix_dir)/NO-Flix/data/flutter_assets/version.json" 2>/dev/null || true
+  sed -n 's/.*"version" *: *"\([^"]*\)".*/\1/p' "$(noflix_dir)/NO-Flix/data/flutter_assets/version.json" 2>/dev/null || true
 }
 
 remove_noflix() {
