@@ -17,7 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      # shellcheck is on GitHub's images already; install it only when missing. A broken
+      # third-party apt source on the runner (packages.microsoft.com 403) must not stop lint.
+      - run: command -v shellcheck || { sudo apt-get update || true; sudo apt-get install -y shellcheck; }
       - run: shellcheck install.sh iso/build-iso.sh rootfs/usr/local/sbin/* rootfs/usr/local/bin/*
       - run: python3 -m py_compile rootfs/usr/local/lib/marquee-admin/*.py rootfs/usr/local/lib/marquee-home/*.py
       - run: for f in rootfs/usr/local/lib/marquee-admin/static/*.js rootfs/usr/local/lib/marquee-home/ui/*.js; do node --check "$f"; done
