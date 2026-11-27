@@ -84,6 +84,9 @@ with the arrow keys and OK (or the mouse). Jellyfin (0.5.0) and Live TV
 - In the web admin under *Home screen* you choose the apps, their order and
   what opens when the TV starts (home screen, last used app or Plex). Switch
   the home screen off to get the old behaviour: straight into Plex.
+- **NO-Flix** (optional): enter your NO-Flix server's address on the same
+  page and press *Install*. The server needs *public downloads* on (the
+  default). The app updates itself; *Reinstall / update* fetches it again.
 
 ## Web admin
 

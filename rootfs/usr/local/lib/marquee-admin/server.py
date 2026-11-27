@@ -54,6 +54,8 @@ JOB_ACTIONS = {
     "update-marquee": ["update", "marquee"],
     "channel-main": ["channel", "main"],
     "channel-test": ["channel", "test"],
+    "install-noflix": ["noflix", "install"],
+    "remove-noflix": ["noflix", "remove"],
 }
 DIRECT_ACTIONS = {"restart-kiosk", "reboot", "poweroff"}
 
@@ -93,24 +95,47 @@ CHECK_HOURS = (0, 1, 2, 3, 6, 12, 24, 48)
 # Apps on the TV home screen. "since": first Marquee version that ships it.
 HOME_APPS = [
     {"id": "plex", "name": "Plex", "available": True, "since": "0.4.0"},
+    # Optional: installed from the web admin (see noflix_info).
+    {"id": "noflix", "name": "NO-Flix", "available": False, "since": "0.4.1", "optional": True},
     {"id": "jellyfin", "name": "Jellyfin", "available": False, "since": "0.5.0"},
     {"id": "livetv", "name": "Live TV", "available": False, "since": "0.6.0"},
 ]
 HOME_START = ("home", "last", "plex")
 
 
+# The address may only hold URL characters: plex-kiosk.conf is read by bash.
+NOFLIX_SERVER_RE = re.compile(r"^(https?://)?[A-Za-z0-9.\-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~/\-]*)?$")
+
+
+def noflix_info(conf: dict) -> dict:
+    user = conf.get("KIOSK_USER", "kiosk")
+    try:
+        home = Path(pwd.getpwnam(user).pw_dir)
+    except KeyError:
+        home = Path("/home") / user
+    app = home / ".local/share/noflix/NO-Flix"
+    version = None
+    try:
+        version = json.loads((app / "data/flutter_assets/version.json").read_text()).get("version")
+    except (OSError, ValueError):
+        pass
+    return {"server": conf.get("NOFLIX_SERVER", ""), "installed": (app / "noflix").is_file(), "version": version}
+
+
 def home_settings(conf: dict) -> dict:
+    noflix = noflix_info(conf)
+    available = {a["id"]: a["available"] or (a["id"] == "noflix" and noflix["installed"]) for a in HOME_APPS}
     enabled = [a.strip() for a in conf.get("HOME_APPS", "plex").split(",") if a.strip()]
     order = enabled + [a["id"] for a in HOME_APPS if a["id"] not in enabled]
     apps = []
     for app_id in order:
         app = next((a for a in HOME_APPS if a["id"] == app_id), None)
         if app:
-            apps.append({**app, "enabled": app["available"] and app_id in enabled})
+            apps.append({**app, "available": available[app_id], "enabled": available[app_id] and app_id in enabled})
     start = conf.get("HOME_START", "home")
     return {"home_screen": conf.get("HOME_SCREEN", "yes") != "no",
             "home_start": start if start in HOME_START else "home",
-            "home_apps": apps}
+            "home_apps": apps, "noflix": noflix}
 
 
 def settings() -> dict:
@@ -125,6 +150,10 @@ def settings() -> dict:
         "kiosk_lang": conf.get("KIOSK_LANG", "en") if conf.get("KIOSK_LANG") in ("en", "nl") else "en",
         **home_settings(conf),
     }
+
+
+def read_conf_apps() -> list:
+    return home_settings(read_conf())["home_apps"]
 
 
 def save_settings(body: dict) -> dict:
@@ -147,11 +176,16 @@ def save_settings(body: dict) -> dict:
             raise ValueError("home_start")
         values["HOME_START"] = body["home_start"]
     if "home_apps" in body:
-        known = {a["id"] for a in HOME_APPS if a["available"]}
+        known = {a["id"] for a in read_conf_apps() if a["available"]}
         apps = [str(a) for a in body["home_apps"]]
         if any(a not in known for a in apps) or len(set(apps)) != len(apps):
             raise ValueError("home_apps")
         values["HOME_APPS"] = ",".join(apps)
+    if "noflix_server" in body:
+        server = str(body["noflix_server"]).strip().rstrip("/")
+        if server and not NOFLIX_SERVER_RE.match(server):
+            raise ValueError("noflix_server")
+        values["NOFLIX_SERVER"] = server
     restart = "HOME_SCREEN" in values and values["HOME_SCREEN"] != ("no" if read_conf().get("HOME_SCREEN") == "no" else "yes")
     if values:
         write_conf(values)

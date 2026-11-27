@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 - 2026-11-27
+- NO-Flix as an optional app on the home screen. Enter your NO-Flix server's
+  address on the admin's *Home screen* page and press Install: Marquee
+  downloads the Linux app from the server's download page (checksum checked),
+  installs the libraries it needs and keeps its sign-in on the device. Switch
+  it on in the app list; the Home key closes it like any other app.
+
 ## 0.4.0 - 2026-11-22
 - New TV home screen: the TV now starts in a Marquee start page with big tiles
   to choose an app (Plex for now; Jellyfin and Live TV follow in 0.5.0 and

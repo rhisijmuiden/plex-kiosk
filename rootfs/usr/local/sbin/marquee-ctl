@@ -4,6 +4,7 @@
 #   marquee-ctl check                 JSON with available updates
 #   marquee-ctl update [all|system|plex|marquee]
 #   marquee-ctl channel main|test     switch production/test branch and reinstall
+#   marquee-ctl noflix install|remove  optional NO-Flix app for the home screen
 #   marquee-ctl restart-kiosk | reboot | poweroff
 set -euo pipefail
 # shellcheck disable=SC1091
@@ -59,6 +60,80 @@ switch_channel() {
   "$DIR/install.sh" --unattended
 }
 
+# --- NO-Flix (optional app on the home screen) ---------------------------------
+# The Linux app comes from the NO-Flix server's own download page (its GitHub
+# repository is private): <server>/api/clients/download/linux, with a .sha256.
+# It lives in the kiosk user's home so its in-app updater can replace it.
+kiosk_home() { getent passwd "${KIOSK_USER:-kiosk}" | cut -d: -f6; }
+noflix_dir() { echo "$(kiosk_home)/.local/share/noflix"; }
+
+install_noflix() {
+  local server="${NOFLIX_SERVER%/}" dir home tmp sum p
+  [[ -n "$server" ]] || { echo "Enter the NO-Flix server address on the Home screen page first."; exit 2; }
+  [[ "$server" =~ ^https?:// ]] || server="http://$server"
+  home="$(kiosk_home)"; dir="$(noflix_dir)"
+  [[ -n "$home" && -d "$home" ]] || { echo "Kiosk user ${KIOSK_USER:-kiosk} not found"; exit 1; }
+
+  echo "== Libraries for NO-Flix (GTK, libmpv for playback, keyring for the sign-in)"
+  apt-get update -qq || true
+  local want=()
+  for p in libgtk-3-0t64 libgtk-3-0 libmpv2 libsecret-1-0 gnome-keyring; do
+    apt-cache show "$p" >/dev/null 2>&1 && want+=("$p")
+  done
+  apt-get install -y --no-install-recommends "${want[@]}"
+
+  echo "== Downloading NO-Flix for Linux from $server"
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
+  if ! curl -fSL --retry 2 --connect-timeout 10 -o "$tmp/noflix.tar.gz" "$server/api/clients/download/linux"; then
+    echo "Download failed. Check the address, that the server is on, and that public downloads are"
+    echo "switched on in the NO-Flix admin (Apps page)."
+    exit 1
+  fi
+  sum="$(curl -fsSL --connect-timeout 10 "$server/api/clients/download/linux/sha256" 2>/dev/null | awk '{print $1}')" || sum=""
+  if [[ -n "$sum" ]]; then
+    echo "$sum  $tmp/noflix.tar.gz" | sha256sum -c -
+  else
+    echo "The server sent no checksum; skipping the check."
+  fi
+  mkdir "$tmp/x"
+  tar -xzf "$tmp/noflix.tar.gz" -C "$tmp/x"
+  [[ -x "$tmp/x/NO-Flix/noflix" ]] || { echo "Unexpected package: NO-Flix/noflix is missing"; exit 1; }
+
+  echo "== Installing to $dir/NO-Flix"
+  runuser -u "${KIOSK_USER:-kiosk}" -- mkdir -p "$dir"
+  rm -rf "${dir:?}/NO-Flix.old"
+  [[ -d "$dir/NO-Flix" ]] && mv "$dir/NO-Flix" "$dir/NO-Flix.old"
+  mv "$tmp/x/NO-Flix" "$dir/NO-Flix"
+  chown -R "${KIOSK_USER:-kiosk}:" "$dir/NO-Flix"
+  rm -rf "${dir:?}/NO-Flix.old"
+
+  # NO-Flix keeps its sign-in in the Secret Service (gnome-keyring). The kiosk
+  # account has no password to unlock a keyring with, so it gets an
+  # unencrypted one; otherwise a "choose a keyring password" dialog would
+  # appear on the TV.
+  local kr="$home/.local/share/keyrings"
+  if [[ ! -e "$kr/login.keyring" ]]; then
+    runuser -u "${KIOSK_USER:-kiosk}" -- mkdir -p "$kr"
+    printf '[keyring]\ndisplay-name=login\nctime=0\nmtime=0\nlock-on-idle=false\nlock-after=false\n' > "$kr/login.keyring"
+    echo login > "$kr/default"
+    chown "${KIOSK_USER:-kiosk}:" "$kr/login.keyring" "$kr/default"
+    chmod 0600 "$kr/login.keyring" "$kr/default"
+  fi
+  echo "== NO-Flix $(noflix_version) is installed. Switch it on under Home screen."
+}
+
+noflix_version() {
+  sed -n 's/.*"version":"\([^"]*\)".*/\1/p' "$(noflix_dir)/NO-Flix/data/flutter_assets/version.json" 2>/dev/null || true
+}
+
+remove_noflix() {
+  local dir; dir="$(noflix_dir)"
+  echo "== Removing NO-Flix from $dir"
+  rm -rf "${dir:?}/NO-Flix" "${dir:?}/NO-Flix.old"
+  echo "== Done (its settings in the kiosk account are kept)"
+}
+
 case "${1:-}" in
   check) check ;;
   update)
@@ -71,8 +146,14 @@ case "${1:-}" in
     esac
     echo "== Done" ;;
   channel) switch_channel "${2:-}" ;;
+  noflix)
+    case "${2:-}" in
+      install) install_noflix ;;
+      remove) remove_noflix ;;
+      *) echo "Usage: marquee-ctl noflix install|remove"; exit 2 ;;
+    esac ;;
   restart-kiosk) systemctl restart plex-kiosk.service ;;
   reboot) systemctl reboot ;;
   poweroff) systemctl poweroff ;;
-  *) sed -n '2,8p' "$0"; exit 2 ;;
+  *) sed -n '2,9p' "$0"; exit 2 ;;
 esac

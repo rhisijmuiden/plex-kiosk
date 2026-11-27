@@ -91,6 +91,19 @@
           <ul class="app-list" id="home-apps"></ul>
         </div>
         <div class="card">
+          <h3>NO-Flix</h3>
+          <p class="muted" data-i18n="nf.hint">The app of your NO-Flix server, for the TV. Marquee downloads it from the server's download page and keeps the sign-in on this device.</p>
+          <div class="settings">
+            <label class="field"><span data-i18n="nf.server">NO-Flix server address</span>
+              <input id="nf-server" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://192.168.1.10:8080"></label>
+          </div>
+          <p class="muted" id="nf-status"></p>
+          <div class="row-end">
+            <button class="btn danger" id="nf-remove" data-i18n="nf.remove" hidden>Remove</button>
+            <button class="btn primary" id="nf-install" data-i18n="nf.install">Install</button>
+          </div>
+        </div>
+        <div class="card">
           <h3 data-i18n="home.start">When the TV starts</h3>
           <div class="seg" id="home-start" role="radiogroup">
             <button type="button" role="radio" data-start="home" data-i18n="home.start_home">Show home screen</button>

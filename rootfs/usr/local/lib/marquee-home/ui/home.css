@@ -45,6 +45,7 @@ svg { flex: none; }
   padding: 8px 14px; border-radius: 999px; background: rgba(0,0,0,.35); }
 .app.plex { --g: linear-gradient(140deg, #3a2a08 0%, #1d1a14 55%, #171B22 100%); }
 .app.jellyfin { --g: linear-gradient(140deg, #3a2470 0%, #1b2a46 60%, #171B22 100%); }
+.app.noflix { --g: linear-gradient(140deg, #3d2a0a 0%, #12131a 60%, #06070B 100%); }
 .app.livetv { --g: linear-gradient(140deg, #5a1f1a 0%, #2a1a1d 55%, #171B22 100%); }
 .app.livetv .badge { background: var(--coral); color: var(--ink); }
 

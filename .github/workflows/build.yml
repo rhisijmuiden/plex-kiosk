@@ -50,6 +50,19 @@ jobs:
           test -x /usr/local/bin/marquee-session
           grep -q 'ExecStart=/usr/bin/cage -d -s -- /usr/local/bin/marquee-session' /etc/systemd/system/plex-kiosk.service
           grep -qx 'HOME_SCREEN=yes' /etc/plex-kiosk/plex-kiosk.conf
+      - name: Install NO-Flix from a (fake) NO-Flix server
+        run: |
+          set -x
+          python3 .github/ci/fake-noflix-server.py &
+          sleep 1
+          sed -i 's|^NOFLIX_SERVER=.*|NOFLIX_SERVER=127.0.0.1:8765|' /etc/plex-kiosk/plex-kiosk.conf
+          /usr/local/sbin/marquee-ctl noflix install
+          test -x /home/kiosk/.local/share/noflix/NO-Flix/noflix
+          test "$(stat -c %U /home/kiosk/.local/share/noflix/NO-Flix)" = kiosk
+          test -f /home/kiosk/.local/share/keyrings/login.keyring
+          cd /usr/local/lib/marquee-admin && python3 -c "import server, json; i = server.noflix_info(server.read_conf()); print(i); assert i['installed'] and i['version'] == '9.9.9'"
+          /usr/local/sbin/marquee-ctl noflix remove
+          test ! -e /home/kiosk/.local/share/noflix/NO-Flix
       - name: Screenshot of the home screen (headless cage)
         continue-on-error: true
         run: |
@@ -58,9 +71,10 @@ jobs:
           cat > /tmp/shot.sh <<'EOS'
           export GDK_BACKEND=wayland WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 NO_AT_BRIDGE=1
           python3 /usr/local/lib/marquee-home/launcher.py &
+          pid=$!
           sleep 20
           grim /tmp/home-screen.png
-          kill %1
+          kill "$pid"
           EOS
           WLR_BACKENDS=headless WLR_RENDERER=pixman WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 \
             timeout 60 dbus-run-session -- cage -- sh /tmp/shot.sh || true
