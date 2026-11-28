@@ -11,7 +11,7 @@
       ask: "What would you like to watch?", morning: "Good morning", afternoon: "Good afternoon", evening: "Good evening", night: "Hello",
       online: "Online", offline: "No network", settings: "Settings", power: "Power", h_open: "Open",
       h_home: "Home key brings you back here", no_apps: "No apps are switched on. Turn them on in the web admin.",
-      plex_sub: "Movies and series from your Plex server", jellyfin_sub: "Your own media library", livetv_sub: "Live channels and TV guide",
+      plex_sub: "Movies and series from your Plex server", jellyfin_sub: "Your own media library", noflix_sub: "Films, series, music and live TV", livetv_sub: "Live channels and TV guide",
       livetv: "Live TV", live: "Live",
       settings_body: "Choose apps, language and updates in the web admin. Open this address on your phone or computer:",
       close: "Close", cancel: "Cancel", i_version: "Version", i_channel: "Channel", i_name: "Device name", i_ip: "Address",
@@ -27,7 +27,7 @@
       ask: "Waar wil je naar kijken?", morning: "Goedemorgen", afternoon: "Goedemiddag", evening: "Goedenavond", night: "Hallo",
       online: "Online", offline: "Geen netwerk", settings: "Instellingen", power: "Aan/uit", h_open: "Openen",
       h_home: "Met de Home-toets kom je hier terug", no_apps: "Er staan geen apps aan. Zet ze aan in het webbeheer.",
-      plex_sub: "Films en series van je Plex-server", jellyfin_sub: "Je eigen mediabibliotheek", livetv_sub: "Live zenders en tv-gids",
+      plex_sub: "Films en series van je Plex-server", jellyfin_sub: "Je eigen mediabibliotheek", noflix_sub: "Films, series, muziek en live tv", livetv_sub: "Live zenders en tv-gids",
       livetv: "Live tv", live: "Live",
       settings_body: "Apps, taal en updates stel je in via het webbeheer. Open dit adres op je telefoon of computer:",
       close: "Sluiten", cancel: "Annuleren", i_version: "Versie", i_channel: "Kanaal", i_name: "Apparaatnaam", i_ip: "Adres",
@@ -44,6 +44,7 @@
   const GLYPH = {
     plex: '<svg width="48" height="48" viewBox="0 0 48 48"><path d="M14 6h12l12 18-12 18H14l12-18z" fill="#E5A00D"/></svg>',
     jellyfin: '<svg width="50" height="50" viewBox="0 0 48 48"><defs><linearGradient id="jg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#AA5CC3"/><stop offset="1" stop-color="#00A4DC"/></linearGradient></defs><path d="M24 6C17 6 5 28 8 34s29 6 32 0S31 6 24 6zm0 12c3 0 9 11 7.5 14s-13.5 3-15 0S21 18 24 18z" fill="url(#jg)"/></svg>',
+    noflix: '<svg width="56" height="56" viewBox="96 96 320 320"><circle cx="256" cy="256" r="176" fill="none" stroke="#FFB23F" stroke-opacity=".28" stroke-width="10"/><circle cx="256" cy="256" r="140" fill="#FFB23F"/><path d="M233.2 191.6 L329.8 256 L233.2 320.4 Z" fill="#06070B" stroke="#06070B" stroke-width="16.8" stroke-linejoin="round"/></svg>',
     livetv: '<svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#FF6B5A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="14" width="36" height="25" rx="5"/><path d="M17 6l7 8 7-8"/><path d="M14 44h20"/></svg>',
   };
 
@@ -212,7 +213,7 @@
   if (!native) {
     const lang = new URLSearchParams(location.search).get("lang") === "nl" ? "nl" : "en";
     window.marquee.update({ lang, version: "0.4.0", channel: "test", host: "marquee", ip: "192.168.1.42", admin_url: "http://192.168.1.42:8080",
-      apps: [{ id: "plex", name: "Plex", enabled: true }, { id: "jellyfin", name: "Jellyfin", enabled: true }, { id: "livetv", name: "Live TV", enabled: true }] });
+      apps: [{ id: "plex", name: "Plex", enabled: true }, { id: "noflix", name: "NO-Flix", enabled: true }, { id: "livetv", name: "Live TV", enabled: true }] });
   } else {
     render();
     send({ cmd: "ready" });

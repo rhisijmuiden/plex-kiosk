@@ -205,11 +205,19 @@
   const APP_ICON = {
     plex: '<svg viewBox="0 0 48 48"><path d="M14 6h12l12 18-12 18H14l12-18z" fill="#E5A00D"/></svg>',
     jellyfin: '<svg viewBox="0 0 48 48"><path d="M24 6C17 6 5 28 8 34s29 6 32 0S31 6 24 6zm0 12c3 0 9 11 7.5 14s-13.5 3-15 0S21 18 24 18z" fill="#9B7BF0"/></svg>',
+    noflix: '<svg viewBox="0 0 512 512"><circle cx="256" cy="256" r="150" fill="#FFB23F"/><path d="M228 180 L340 256 L228 332 Z" fill="#06070B"/></svg>',
     livetv: '<svg viewBox="0 0 48 48" fill="none" stroke="#FF6B5A" stroke-width="4" stroke-linecap="round"><rect x="6" y="14" width="36" height="25" rx="5"/><path d="M17 6l7 8 7-8"/></svg>',
   };
   function renderHome(s, keepEdits) {
     if (!s) return;
-    if (!keepEdits) { home.apps = s.home_apps.map(a => ({ ...a })); home.start = s.home_start; $("#home-screen").checked = s.home_screen; }
+    if (!keepEdits) {
+      home.apps = s.home_apps.map(a => ({ ...a })); home.start = s.home_start; $("#home-screen").checked = s.home_screen;
+      $("#nf-server").value = s.noflix?.server || "";
+    }
+    const nf = s.noflix || {};
+    $("#nf-status").textContent = nf.installed ? t("nf.installed", { v: nf.version || "?" }) : t("nf.not_installed");
+    $("#nf-install").textContent = t(nf.installed ? "nf.update" : "nf.install");
+    $("#nf-remove").hidden = !nf.installed;
     const ul = $("#home-apps"); ul.innerHTML = "";
     home.apps.forEach((a, i) => {
       const li = document.createElement("li");
@@ -219,7 +227,8 @@
         <span class="order"><button class="icon-btn" data-dir="-1"><svg viewBox="0 0 24 24"><path d="m12 8-6 6 1.4 1.4L12 10.8l4.6 4.6L18 14z"/></svg></button><button class="icon-btn" data-dir="1"><svg viewBox="0 0 24 24"><path d="m12 16 6-6-1.4-1.4-4.6 4.6-4.6-4.6L6 10z"/></svg></button></span>
         <label class="switch"><input type="checkbox"><i></i></label>`;
       $("strong", li).textContent = a.id === "livetv" ? t("home.livetv") : a.name;
-      $(".app-name .muted", li).textContent = a.available ? t(a.enabled ? "home.shown" : "home.hidden") : t("home.soon", { v: a.since });
+      $(".app-name .muted", li).textContent = a.available ? t(a.enabled ? "home.shown" : "home.hidden")
+        : a.optional ? t("home.install_first") : t("home.soon", { v: a.since });
       const [up, down] = $$(".order button", li);
       up.setAttribute("aria-label", t("home.up")); down.setAttribute("aria-label", t("home.down"));
       up.disabled = i === 0; down.disabled = i === home.apps.length - 1;
@@ -248,6 +257,21 @@
     finally { btn.disabled = false; }
   });
 
+  // ---------- NO-Flix ----------
+  $("#nf-install").addEventListener("click", async e => {
+    const server = $("#nf-server").value.trim();
+    if (!server) { toast(t("nf.need_server")); $("#nf-server").focus(); return; }
+    const btn = e.currentTarget; btn.disabled = true;
+    try {
+      state.settings = await api("/api/settings", { noflix_server: server });
+      runAction("install-noflix");
+    } catch (_) { toast(t("nf.bad_server")); }
+    finally { btn.disabled = false; }
+  });
+  $("#nf-remove").addEventListener("click", async () => {
+    if (await confirmBox(t("nf.confirm_remove"))) runAction("remove-noflix");
+  });
+
   // ---------- jobs ----------
   async function openJob(id, action) {
     const dlg = $("#job-dialog"), log = $("#job-log"), pill = $("#job-state");
@@ -265,7 +289,7 @@
       } catch (_) { /* admin may restart during self-update; keep polling */ }
       if (!done) await new Promise(r => setTimeout(r, 1500));
     }
-    if (done) { refreshStatus(); loadJobs(); }
+    if (done) { refreshStatus(); loadJobs(); if (state.page === "home") loadSettings(); }
   }
   $("#job-close").addEventListener("click", () => $("#job-dialog").close());
 

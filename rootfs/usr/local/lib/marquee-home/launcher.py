@@ -42,9 +42,14 @@ TOKEN_FILE = Path("/run/marquee/kiosk-token")
 STATE_DIR = Path(GLib.get_user_state_dir()) / "marquee"
 LAST_APP = STATE_DIR / "last-app"
 
-# Every app the home screen knows. "available": shipped in this version.
+# NO-Flix (optional): installed from the web admin into the kiosk user's home.
+NOFLIX_EXE = Path.home() / ".local/share/noflix/NO-Flix/noflix"
+
+# Every app the home screen knows. "available": shipped in this version
+# (or a callable for optional apps that are only there once installed).
 APPS = [
     {"id": "plex", "name": "Plex", "flatpak": "PLEX_APP_ID", "default_flatpak": "tv.plex.PlexHTPC", "available": True},
+    {"id": "noflix", "name": "NO-Flix", "exe": NOFLIX_EXE, "available": lambda: os.access(NOFLIX_EXE, os.X_OK)},
     {"id": "jellyfin", "name": "Jellyfin", "flatpak": None, "default_flatpak": "org.jellyfin.JellyfinDesktop", "available": False},
     {"id": "livetv", "name": "Live TV", "flatpak": None, "default_flatpak": None, "available": False},
 ]
@@ -67,11 +72,16 @@ def read_conf() -> dict:
     return conf
 
 
+def is_available(app: dict) -> bool:
+    avail = app["available"]
+    return bool(avail()) if callable(avail) else bool(avail)
+
+
 def app_list(conf: dict) -> list:
     enabled = [a.strip() for a in conf.get("HOME_APPS", "plex").split(",") if a.strip()]
     out = []
     for app in APPS:
-        if not app["available"]:
+        if not is_available(app):
             continue
         out.append({"id": app["id"], "name": app["name"], "enabled": app["id"] in enabled,
                     "order": enabled.index(app["id"]) if app["id"] in enabled else 99})
@@ -80,9 +90,11 @@ def app_list(conf: dict) -> list:
 
 
 def app_command(app_id: str, conf: dict):
-    app = next((a for a in APPS if a["id"] == app_id and a["available"]), None)
+    app = next((a for a in APPS if a["id"] == app_id and is_available(a)), None)
     if not app:
         return None, None
+    if app.get("exe"):
+        return [str(app["exe"])], None
     flatpak_id = conf.get(app["flatpak"], app["default_flatpak"]) if app["flatpak"] else app["default_flatpak"]
     return ["/usr/bin/flatpak", "run", flatpak_id], flatpak_id
 

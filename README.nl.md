@@ -85,6 +85,10 @@ voorlopig is Plex de enige app.
 - In het webbeheer onder *Startscherm* kies je de apps, de volgorde en wat er
   opent als de tv start (startscherm, laatst gebruikte app of Plex). Zet het
   startscherm uit voor het oude gedrag: direct naar Plex.
+- **NO-Flix** (optioneel): vul op dezelfde pagina het adres van je NO-Flix-server
+  in en druk op *Installeren*. Op de server moeten *openbare downloads* aan
+  staan (standaard). De app werkt zichzelf bij; *Opnieuw installeren* haalt
+  hem opnieuw op.
 
 ## Webbeheer
 
